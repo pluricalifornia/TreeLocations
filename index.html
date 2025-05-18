@@ -75,8 +75,6 @@
   <!-- ArcGIS JavaScript API -->
   <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
   <script src="https://js.arcgis.com/4.28/"></script>
-  <!-- Add Esri Leaflet for additional functionality -->
-  <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
 </head>
 <body>
   <div id="viewDiv"></div>
@@ -142,7 +140,9 @@
       "esri/symbols/SimpleFillSymbol",
       "esri/renderers/SimpleRenderer",
       "esri/PopupTemplate",
-      "esri/Color"
+      "esri/Color",
+      "esri/request",
+      "esri/geometry/geometryEngine"
     ];
 
     // Initialize ArcGIS map after data is loaded
@@ -150,12 +150,13 @@
       // Use ArcGIS AMD loader which is included in the ArcGIS JS API
       require(arcgisModules, function(
         Map, MapView, Graphic, GraphicsLayer, FeatureLayer, GeoJSONLayer, 
-        Point, SimpleMarkerSymbol, SimpleFillSymbol, SimpleRenderer, PopupTemplate, Color
+        Point, SimpleMarkerSymbol, SimpleFillSymbol, SimpleRenderer, PopupTemplate, Color,
+        esriRequest, geometryEngine
       ) {
         
-        // Create a map
+        // Create a map with explicitly defined basemap for better compatibility
         const map = new Map({
-          basemap: "topo-vector"
+          basemap: "topo-vector" 
         });
 
         // Create a map view
@@ -166,75 +167,145 @@
           zoom: 15
         });
 
-        // Fix for basemap loading issue - force a specific basemap first
+        // Wait for view to be ready before doing anything else
         view.when(() => {
           console.log("View loaded successfully");
-          // Ensure basemaps load properly
-          map.basemap = "satellite";
-          setTimeout(() => {
-            map.basemap = "topo-vector";
-          }, 1000);
+          
+          // Add tree layers after view is ready
+          addTreesToMap();
+          
+          // Load farm boundaries after view is ready
+          loadFarmBoundaries();
+          
+          // Set up basemap switching after view is ready
+          setupBasemapSwitching();
         });
-
-        // Load farm boundaries from GeoJSON - improved error handling
-        console.log("Attempting to load GeoJSON from:", "data/GreenRobinFarms.geojson");
         
-        const farmBoundariesLayer = new GeoJSONLayer({
-          url: "data/GreenRobinFarms.geojson",
-          outFields: ["*"],
-          renderer: new SimpleRenderer({
-            symbol: new SimpleFillSymbol({
-              color: new Color([0, 100, 0, 0.2]),
+        // Function to add trees to map
+        function addTreesToMap() {
+          // Create a graphics layer for the trees
+          const treeLayer = new GraphicsLayer();
+          map.add(treeLayer);
+
+          // Add tree points to the map
+          treeData.forEach(tree => {
+            // Assign a unique color to each tree type
+            if (!treeTypesWithColors[tree.Type]) {
+              let color;
+              if (treeColors[tree.Type]) {
+                // Use predefined color if available
+                color = treeColors[tree.Type];
+              } else {
+                // Use an extra color if no predefined color
+                color = extraColors[colorIndex % extraColors.length];
+                colorIndex++;
+              }
+              treeTypesWithColors[tree.Type] = color;
+            }
+            
+            // Get the color for this tree type
+            const color = treeTypesWithColors[tree.Type];
+            
+            // Create a point
+            const point = new Point({
+              longitude: tree.Longitude,
+              latitude: tree.Latitude
+            });
+
+            // Create a symbol
+            const symbol = new SimpleMarkerSymbol({
+              color: color,
+              size: 12,
               outline: {
-                color: new Color([0, 100, 0]),
+                color: [255, 255, 255],
                 width: 2
               }
-            })
-          }),
-          popupTemplate: {
-            title: "Green Robin Farms",
-            content: "Farm boundary perimeter"
-          }
-        });
-        
-        // Add GeoJSON layer to map
-        map.add(farmBoundariesLayer);
-        
-        // Monitor GeoJSON layer loading
-        farmBoundariesLayer.watch("loadStatus", function(status) {
-          console.log("GeoJSON load status:", status);
-        });
-        
-        // Error handling for GeoJSON layer
-        farmBoundariesLayer.load().catch(function(error) {
-          console.error("Error loading GeoJSON:", error);
+            });
+
+            // Create a popup template
+            const popupTemplate = new PopupTemplate({
+              title: "{Type}",
+              content: "Longitude: {Longitude}<br>Latitude: {Latitude}"
+            });
+
+            // Create a graphic
+            const graphic = new Graphic({
+              geometry: point,
+              symbol: symbol,
+              attributes: {
+                Type: tree.Type,
+                Longitude: tree.Longitude,
+                Latitude: tree.Latitude
+              },
+              popupTemplate: popupTemplate
+            });
+
+            // Add the graphic to the layer
+            treeLayer.add(graphic);
+          });
+
+          // Create legend
+          const legendContent = document.getElementById("legendContent");
           
-          // Fallback - try loading as direct file read with fetch
-          fetch("data/GreenRobinFarms.geojson")
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-              }
-              return response.json();
-            })
-            .then(geojsonData => {
-              console.log("Successfully fetched GeoJSON directly");
-              
-              // Create graphics from GeoJSON
+          // Sort tree types alphabetically
+          const sortedTreeTypes = Object.keys(treeTypesWithColors).sort();
+          
+          // Add legend items
+          sortedTreeTypes.forEach(treeType => {
+            const color = treeTypesWithColors[treeType];
+            
+            const legendItem = document.createElement("div");
+            legendItem.className = "legend-item";
+            
+            const colorBox = document.createElement("div");
+            colorBox.className = "legend-color";
+            colorBox.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+            
+            const label = document.createElement("span");
+            label.textContent = treeType;
+            
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(label);
+            legendContent.appendChild(legendItem);
+          });
+        }
+        
+        // Function to load farm boundaries
+        function loadFarmBoundaries() {
+          // Attempt to load GeoJSON directly with esriRequest
+          esriRequest("data/GreenRobinFarms.geojson", {
+            responseType: "json"
+          }).then(response => {
+            console.log("Successfully loaded GeoJSON with esriRequest");
+            const geojson = response.data;
+            
+            // Create graphics from GeoJSON
+            if (geojson && geojson.features && geojson.features.length > 0) {
               const graphicsLayer = new GraphicsLayer();
               
-              // Add each feature as a graphic
-              if (geojsonData.features && geojsonData.features.length > 0) {
-                geojsonData.features.forEach(feature => {
+              geojson.features.forEach(feature => {
+                // Create polygon geometry from coordinates
+                let polygonGeometry;
+                if (feature.geometry.type === "Polygon") {
+                  polygonGeometry = {
+                    type: "polygon",
+                    rings: feature.geometry.coordinates
+                  };
+                } else if (feature.geometry.type === "MultiPolygon") {
+                  // Handle MultiPolygon by using the first polygon
+                  polygonGeometry = {
+                    type: "polygon",
+                    rings: feature.geometry.coordinates[0]
+                  };
+                }
+                
+                if (polygonGeometry) {
                   const graphic = new Graphic({
-                    geometry: {
-                      type: "polygon",
-                      rings: feature.geometry.coordinates[0]
-                    },
+                    geometry: polygonGeometry,
                     symbol: new SimpleFillSymbol({
-                      color: new Color([0, 100, 0, 0.2]),
+                      color: [0, 100, 0, 0.2],
                       outline: {
-                        color: new Color([0, 100, 0]),
+                        color: [0, 100, 0],
                         width: 2
                       }
                     }),
@@ -243,21 +314,23 @@
                       content: "Farm boundary perimeter"
                     }
                   });
+                  
                   graphicsLayer.add(graphic);
-                });
-                
-                map.add(graphicsLayer);
-              } else {
-                throw new Error("No features found in GeoJSON");
-              }
-            })
-            .catch(fetchError => {
-              console.error("Fetch error:", fetchError);
+                }
+              });
+              
+              map.add(graphicsLayer);
+            } else {
+              console.error("Invalid GeoJSON structure");
               createFallbackBoundary();
-            });
-        });
+            }
+          }).catch(error => {
+            console.error("Error loading GeoJSON with esriRequest:", error);
+            createFallbackBoundary();
+          });
+        }
         
-        // Function to create fallback boundary if all else fails
+        // Function to create fallback boundary
         function createFallbackBoundary() {
           console.log("Creating fallback boundary");
           
@@ -278,7 +351,7 @@
           });
           
           // Add some padding
-          const padding = 0.0005;
+          const padding = 0.0025; // Increased padding for visibility
           minLong -= padding;
           maxLong += padding;
           minLat -= padding;
@@ -301,9 +374,9 @@
           const boundaryGraphic = new Graphic({
             geometry: boundaryPolygon,
             symbol: new SimpleFillSymbol({
-              color: new Color([0, 100, 0, 0.2]),
+              color: [0, 100, 0, 0.2],
               outline: {
-                color: new Color([0, 100, 0]),
+                color: [0, 100, 0],
                 width: 2
               }
             }),
@@ -315,6 +388,60 @@
           
           fallbackLayer.add(boundaryGraphic);
           map.add(fallbackLayer);
+        }
+        
+        // Function to set up basemap switching
+        function setupBasemapSwitching() {
+          const basemapButtons = document.querySelectorAll('.basemap-btn');
+          
+          basemapButtons.forEach(button => {
+            button.addEventListener('click', function() {
+              // Get the basemap ID
+              const basemapId = this.getAttribute('data-basemap');
+              console.log("Changing basemap to:", basemapId);
+              
+              // Update active button
+              basemapButtons.forEach(btn => btn.classList.remove('active'));
+              this.classList.add('active');
+              
+              // Change the basemap with proper error handling
+              try {
+                map.basemap = basemapId;
+              } catch (e) {
+                console.error("Error changing basemap:", e);
+                
+                // Fallback to alternate method for satellite
+                if (basemapId === "satellite") {
+                  map.basemap = { 
+                    portalItem: { 
+                      id: "86de95d4e0244cba80f0fa2c9403a7b2" 
+                    } 
+                  };
+                } else if (basemapId === "hybrid") {
+                  map.basemap = { 
+                    portalItem: { 
+                      id: "effe3475f05a4d608e66fd6eeb2113c0" 
+                    } 
+                  };
+                } else if (basemapId === "streets-vector") {
+                  map.basemap = { 
+                    portalItem: { 
+                      id: "6e03e8c26a534cb1a23984f31b5b9eee" 
+                    } 
+                  };
+                } else if (basemapId === "osm") {
+                  map.basemap = { 
+                    portalItem: { 
+                      id: "5e9b3685f4c24d8781073dd928ebda50" 
+                    } 
+                  };
+                } else {
+                  // Default to topo if all else fails
+                  map.basemap = "topo-vector";
+                }
+              }
+            });
+          });
         }
 
         // Create a graphics layer for the trees
