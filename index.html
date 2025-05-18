@@ -2,7 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Tree Location Map</title>
   <style>
     :root {
@@ -12,6 +14,10 @@
       --purple: #7b75a8;
       --yellow: #c8c554;
       --white: #ffffff;
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
     }
     
     html, body, #viewDiv {
@@ -19,12 +25,15 @@
       margin: 0;
       height: 100%;
       width: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      touch-action: manipulation;
+      overscroll-behavior: none;
     }
     
     #headerDiv {
       position: absolute;
-      top: 15px;
+      top: calc(15px + var(--safe-area-inset-top));
       left: 90px; /* Positioned slightly to the right of logo container */
       z-index: 99;
       display: flex;
@@ -37,7 +46,7 @@
     
     #logoContainer {
       position: absolute;
-      top: 15px;
+      top: calc(15px + var(--safe-area-inset-top));
       left: 15px;
       z-index: 99;
       background-color: var(--white);
@@ -50,19 +59,19 @@
     }
     
     #logoImg {
-      height: 50px;
+      height: 40px;
     }
     
     #headerText {
       color: var(--dark-green);
       margin: 0;
       font-weight: 600;
-      font-size: 20px;
+      font-size: 18px;
     }
     
     #infoDiv {
       position: absolute;
-      top: 15px;
+      top: calc(15px + var(--safe-area-inset-top));
       right: 15px;
       width: 280px;
       padding: 15px;
@@ -129,7 +138,7 @@
     
     #debugDiv {
       position: absolute;
-      bottom: 15px;
+      bottom: calc(15px + var(--safe-area-inset-bottom));
       left: 15px;
       max-width: 50%;
       max-height: 200px;
@@ -143,6 +152,56 @@
       display: none;
       border-left: 3px solid var(--purple);
     }
+    
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      #headerDiv {
+        left: 15px;
+        top: calc(75px + var(--safe-area-inset-top)); /* Position below logo */
+        width: calc(100% - 30px);
+        box-sizing: border-box;
+      }
+      
+      #headerText {
+        font-size: 16px;
+        text-align: center;
+        width: 100%;
+      }
+      
+      #infoDiv {
+        top: auto;
+        bottom: calc(15px + var(--safe-area-inset-bottom));
+        width: calc(100% - 30px);
+        max-height: 40vh;
+        overflow-y: auto;
+        left: 15px;
+        right: 15px;
+      }
+      
+      #logoImg {
+        height: 40px;
+      }
+      
+      .legend-item {
+        margin-bottom: 6px;
+      }
+      
+      .esri-view .esri-view-surface--touch-none {
+        touch-action: pan-x pan-y;
+      }
+      
+      /* Improve touch targets */
+      .esri-widget--button {
+        width: 44px !important;
+        height: 44px !important;
+      }
+      
+      /* Prevent text selection during map interaction */
+      #viewDiv {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    }
   </style>
   
   <!-- ArcGIS API for JavaScript -->
@@ -150,6 +209,22 @@
   <script src="https://js.arcgis.com/4.28/"></script>
   
   <script>
+    // iOS-specific setup
+    document.addEventListener('gesturestart', function(e) {
+      e.preventDefault(); // Prevent default pinch zoom behavior on iOS
+    });
+    
+    // On iOS, it's common for the address bar to hide on scroll
+    // which affects the layout - this helps manage that
+    function updateViewportHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    updateViewportHeight();
+    
     // Debug function
     function debugLog(message) {
       console.log(message);
@@ -339,9 +414,20 @@
           nextBasemap: "satellite"
         });
         
-        // Add widgets to the UI
+        // Add widgets to the UI and adjust positions for mobile
         view.ui.add(homeWidget, "top-left");
         view.ui.add(basemapToggle, "bottom-right");
+        
+        // Detect if on mobile
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+        if (isMobile) {
+          // Adjust map UI for better touch interaction
+          view.ui.padding = {
+            top: 120, // Extra space for header
+            bottom: document.documentElement.style.getPropertyValue('--safe-area-inset-bottom') ? 
+                    parseInt(document.documentElement.style.getPropertyValue('--safe-area-inset-bottom')) + 15 : 15
+          };
+        }
         
         // Wait for view to load
         view.when(() => {
@@ -396,7 +482,7 @@
               symbol: {
                 type: "simple-marker",
                 color: color,
-                size: 12,
+                size: isMobile ? 15 : 12, // Larger touch targets on mobile
                 outline: {
                   color: [255, 255, 255],
                   width: 2
