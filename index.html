@@ -96,7 +96,7 @@
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
         const tree = {};
         headers.forEach((header, index) => {
-          if (header === 'Longitude' || header === ' Latitude') {
+          if (header === 'Longitude' || header === 'Latitude') {
             tree[header.trim()] = parseFloat(values[index]);
           } else {
             tree[header.trim()] = values[index];
@@ -294,7 +294,8 @@
             // Get the color for this tree type
             const color = treeTypesWithColors[tree.Type];
             
-            // Create point
+            // Create point - Here the longitude and latitude
+            // are correctly used in the Point constructor
             const point = new Point({
               longitude: tree.Longitude,
               latitude: tree.Latitude
@@ -382,45 +383,44 @@
               
               if (geojson.features && geojson.features.length > 0) {
                 // Create graphics from GeoJSON features
-                let feature = geojson.features[0]; // Use the first feature
-                
-                // Determine geometry type
-                let rings;
-                
-                if (feature.geometry.type === "Polygon") {
-                  debugLog("GeoJSON contains Polygon geometry");
-                  rings = feature.geometry.coordinates;
-                } else if (feature.geometry.type === "MultiPolygon") {
-                  debugLog("GeoJSON contains MultiPolygon geometry");
-                  rings = feature.geometry.coordinates[0];
-                } else {
-                  debugLog(`Unsupported geometry type: ${feature.geometry.type}`);
-                  createFallbackBoundary(layer, fallbackExtent);
-                  return;
-                }
-                
-                // Create graphic
-                const graphic = new Graphic({
-                  geometry: {
-                    type: "polygon",
-                    rings: rings
-                  },
-                  symbol: {
-                    type: "simple-fill",
-                    color: [0, 100, 0, 0.2], // Dark green with transparency
-                    outline: {
-                      color: [0, 100, 0],
-                      width: 2
-                    }
-                  },
-                  popupTemplate: {
-                    title: "Green Robin Farms",
-                    content: "Farm boundary perimeter"
+                geojson.features.forEach(feature => {
+                  // Determine geometry type
+                  let rings;
+                  
+                  if (feature.geometry.type === "Polygon") {
+                    debugLog("GeoJSON contains Polygon geometry");
+                    rings = feature.geometry.coordinates;
+                  } else if (feature.geometry.type === "MultiPolygon") {
+                    debugLog("GeoJSON contains MultiPolygon geometry");
+                    rings = feature.geometry.coordinates[0];
+                  } else {
+                    debugLog(`Unsupported geometry type: ${feature.geometry.type}`);
+                    return;
                   }
+                  
+                  // Create graphic
+                  const graphic = new Graphic({
+                    geometry: {
+                      type: "polygon",
+                      rings: rings
+                    },
+                    symbol: {
+                      type: "simple-fill",
+                      color: [0, 100, 0, 0.2], // Dark green with transparency
+                      outline: {
+                        color: [0, 100, 0],
+                        width: 2
+                      }
+                    },
+                    popupTemplate: {
+                      title: "Green Robin Farms",
+                      content: "Farm boundary perimeter"
+                    }
+                  });
+                  
+                  // Add to layer
+                  layer.add(graphic);
                 });
-                
-                // Add to layer
-                layer.add(graphic);
                 
                 debugLog("Farm boundary added to map");
               } else {
