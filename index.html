@@ -134,7 +134,7 @@
       "esri/Graphic",
       "esri/layers/GraphicsLayer",
       "esri/layers/FeatureLayer",
-      "esri/layers/ShapefileLayer",
+      "esri/layers/GeoJSONLayer",
       "esri/geometry/Point",
       "esri/symbols/SimpleMarkerSymbol",
       "esri/symbols/SimpleFillSymbol",
@@ -147,7 +147,7 @@
     loadTreeData().then(treeData => {
       // Use ArcGIS AMD loader which is included in the ArcGIS JS API
       require(arcgisModules, function(
-        Map, MapView, Graphic, GraphicsLayer, FeatureLayer, ShapefileLayer, 
+        Map, MapView, Graphic, GraphicsLayer, FeatureLayer, GeoJSONLayer, 
         Point, SimpleMarkerSymbol, SimpleFillSymbol, SimpleRenderer, PopupTemplate, Color
       ) {
         
@@ -164,9 +164,9 @@
           zoom: 15
         });
 
-        // Load farm boundaries shapefile
-        const farmBoundaries = new ShapefileLayer({
-          url: "data/GreenRobinFarms.shp",
+        // Load farm boundaries as GeoJSON
+        const farmBoundaries = new GeoJSONLayer({
+          url: "data/GreenRobinFarms.geojson", // Path to GeoJSON file
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               color: new Color([0, 100, 0, 0.2]), // Dark green with transparency
@@ -176,6 +176,7 @@
               }
             })
           }),
+          title: "Farm Boundaries",
           popupTemplate: {
             title: "Green Robin Farms",
             content: "Farm boundary perimeter"
@@ -184,6 +185,47 @@
         
         // Add farm boundaries to map
         map.add(farmBoundaries);
+        
+        // Fallback if GeoJSON fails to load
+        farmBoundaries.on("error", function(error) {
+          console.log("Error loading GeoJSON boundary:", error);
+          
+          // Create a simple polygon representing the farm boundary as fallback
+          const farmBoundaryPolygon = {
+            type: "polygon",
+            rings: [
+              // Create a default polygon that approximates the farm area
+              // These coordinates are approximate and centered around the first tree
+              [
+                [treeData[0].Longitude - 0.005, treeData[0].Latitude - 0.005],
+                [treeData[0].Longitude + 0.005, treeData[0].Latitude - 0.005],
+                [treeData[0].Longitude + 0.005, treeData[0].Latitude + 0.005],
+                [treeData[0].Longitude - 0.005, treeData[0].Latitude + 0.005],
+                [treeData[0].Longitude - 0.005, treeData[0].Latitude - 0.005]
+              ]
+            ]
+          };
+          
+          const farmGraphic = new Graphic({
+            geometry: farmBoundaryPolygon,
+            symbol: new SimpleFillSymbol({
+              color: [0, 100, 0, 0.2],
+              outline: {
+                color: [0, 100, 0],
+                width: 2
+              }
+            }),
+            popupTemplate: {
+              title: "Green Robin Farms",
+              content: "Farm boundary perimeter (approximate)"
+            }
+          });
+          
+          // Create a new GraphicsLayer for the farm boundary
+          const farmLayer = new GraphicsLayer();
+          farmLayer.add(farmGraphic);
+          map.add(farmLayer);
+        });
 
         // Create a graphics layer for the trees
         const treeLayer = new GraphicsLayer();
