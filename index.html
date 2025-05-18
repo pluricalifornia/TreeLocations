@@ -206,11 +206,13 @@
       #infoDiv {
         top: auto;
         bottom: calc(15px + var(--safe-area-inset-bottom));
-        width: calc(100% - 30px);
+        max-width: fit-content;
+        width: auto;
         max-height: 35vh;
         overflow-y: auto;
-        left: 15px;
         right: 15px;
+        left: auto;
+        padding: 10px;
       }
       
       #logoImg {
@@ -219,24 +221,26 @@
       
       .legend-item {
         margin-bottom: 5px;
-        font-size: 12px;
+        white-space: nowrap;
       }
       
       .legend-color {
         width: 16px;
         height: 16px;
         margin-right: 8px;
+        flex-shrink: 0;
       }
       
       #legendDiv {
-        font-size: 12px;
         padding: 8px;
+        width: auto;
       }
       
       h3 {
         font-size: 14px;
         margin-bottom: 10px;
         padding-bottom: 5px;
+        white-space: nowrap;
       }
       
       .esri-view .esri-view-surface--touch-none {
@@ -485,7 +489,9 @@
         
         // Add widgets to the UI and adjust positions for mobile
         view.ui.add(homeWidget, "top-left");
-        view.ui.add(basemapToggle, "bottom-right");
+        
+        // Add BasemapToggle widget to the top-right corner
+        view.ui.add(basemapToggle, "top-right");
         
         // Detect if on mobile
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -494,7 +500,8 @@
           view.ui.padding = {
             top: 120, // Extra space for header
             bottom: document.documentElement.style.getPropertyValue('--safe-area-inset-bottom') ? 
-                    parseInt(document.documentElement.style.getPropertyValue('--safe-area-inset-bottom')) + 15 : 15
+                    parseInt(document.documentElement.style.getPropertyValue('--safe-area-inset-bottom')) + 15 : 15,
+            right: 15 // Ensure padding for the basemap toggle
           };
         }
         
