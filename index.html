@@ -75,6 +75,8 @@
   <!-- ArcGIS JavaScript API -->
   <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
   <script src="https://js.arcgis.com/4.28/"></script>
+  <!-- Add Esri Leaflet for additional functionality -->
+  <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
 </head>
 <body>
   <div id="viewDiv"></div>
@@ -164,68 +166,156 @@
           zoom: 15
         });
 
-        // Load farm boundaries as GeoJSON
-        const farmBoundaries = new GeoJSONLayer({
-          url: "data/GreenRobinFarms.geojson", // Path to GeoJSON file
+        // Fix for basemap loading issue - force a specific basemap first
+        view.when(() => {
+          console.log("View loaded successfully");
+          // Ensure basemaps load properly
+          map.basemap = "satellite";
+          setTimeout(() => {
+            map.basemap = "topo-vector";
+          }, 1000);
+        });
+
+        // Load farm boundaries from GeoJSON - improved error handling
+        console.log("Attempting to load GeoJSON from:", "data/GreenRobinFarms.geojson");
+        
+        const farmBoundariesLayer = new GeoJSONLayer({
+          url: "data/GreenRobinFarms.geojson",
+          outFields: ["*"],
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
-              color: new Color([0, 100, 0, 0.2]), // Dark green with transparency
+              color: new Color([0, 100, 0, 0.2]),
               outline: {
-                color: new Color([0, 100, 0]), // Dark green outline
+                color: new Color([0, 100, 0]),
                 width: 2
               }
             })
           }),
-          title: "Farm Boundaries",
           popupTemplate: {
             title: "Green Robin Farms",
             content: "Farm boundary perimeter"
           }
         });
         
-        // Add farm boundaries to map
-        map.add(farmBoundaries);
+        // Add GeoJSON layer to map
+        map.add(farmBoundariesLayer);
         
-        // Fallback if GeoJSON fails to load
-        farmBoundaries.on("error", function(error) {
-          console.log("Error loading GeoJSON boundary:", error);
+        // Monitor GeoJSON layer loading
+        farmBoundariesLayer.watch("loadStatus", function(status) {
+          console.log("GeoJSON load status:", status);
+        });
+        
+        // Error handling for GeoJSON layer
+        farmBoundariesLayer.load().catch(function(error) {
+          console.error("Error loading GeoJSON:", error);
           
-          // Create a simple polygon representing the farm boundary as fallback
-          const farmBoundaryPolygon = {
+          // Fallback - try loading as direct file read with fetch
+          fetch("data/GreenRobinFarms.geojson")
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(geojsonData => {
+              console.log("Successfully fetched GeoJSON directly");
+              
+              // Create graphics from GeoJSON
+              const graphicsLayer = new GraphicsLayer();
+              
+              // Add each feature as a graphic
+              if (geojsonData.features && geojsonData.features.length > 0) {
+                geojsonData.features.forEach(feature => {
+                  const graphic = new Graphic({
+                    geometry: {
+                      type: "polygon",
+                      rings: feature.geometry.coordinates[0]
+                    },
+                    symbol: new SimpleFillSymbol({
+                      color: new Color([0, 100, 0, 0.2]),
+                      outline: {
+                        color: new Color([0, 100, 0]),
+                        width: 2
+                      }
+                    }),
+                    popupTemplate: {
+                      title: "Green Robin Farms",
+                      content: "Farm boundary perimeter"
+                    }
+                  });
+                  graphicsLayer.add(graphic);
+                });
+                
+                map.add(graphicsLayer);
+              } else {
+                throw new Error("No features found in GeoJSON");
+              }
+            })
+            .catch(fetchError => {
+              console.error("Fetch error:", fetchError);
+              createFallbackBoundary();
+            });
+        });
+        
+        // Function to create fallback boundary if all else fails
+        function createFallbackBoundary() {
+          console.log("Creating fallback boundary");
+          
+          // Create a GraphicsLayer for the fallback boundary
+          const fallbackLayer = new GraphicsLayer();
+          
+          // Find the extent of all trees to create a boundary around them
+          let minLong = Number.MAX_VALUE;
+          let maxLong = Number.MIN_VALUE;
+          let minLat = Number.MAX_VALUE;
+          let maxLat = Number.MIN_VALUE;
+          
+          treeData.forEach(tree => {
+            minLong = Math.min(minLong, tree.Longitude);
+            maxLong = Math.max(maxLong, tree.Longitude);
+            minLat = Math.min(minLat, tree.Latitude);
+            maxLat = Math.max(maxLat, tree.Latitude);
+          });
+          
+          // Add some padding
+          const padding = 0.0005;
+          minLong -= padding;
+          maxLong += padding;
+          minLat -= padding;
+          maxLat += padding;
+          
+          // Create a polygon that encompasses all trees
+          const boundaryPolygon = {
             type: "polygon",
             rings: [
-              // Create a default polygon that approximates the farm area
-              // These coordinates are approximate and centered around the first tree
               [
-                [treeData[0].Longitude - 0.005, treeData[0].Latitude - 0.005],
-                [treeData[0].Longitude + 0.005, treeData[0].Latitude - 0.005],
-                [treeData[0].Longitude + 0.005, treeData[0].Latitude + 0.005],
-                [treeData[0].Longitude - 0.005, treeData[0].Latitude + 0.005],
-                [treeData[0].Longitude - 0.005, treeData[0].Latitude - 0.005]
+                [minLong, minLat],
+                [maxLong, minLat],
+                [maxLong, maxLat],
+                [minLong, maxLat],
+                [minLong, minLat]
               ]
             ]
           };
           
-          const farmGraphic = new Graphic({
-            geometry: farmBoundaryPolygon,
+          const boundaryGraphic = new Graphic({
+            geometry: boundaryPolygon,
             symbol: new SimpleFillSymbol({
-              color: [0, 100, 0, 0.2],
+              color: new Color([0, 100, 0, 0.2]),
               outline: {
-                color: [0, 100, 0],
+                color: new Color([0, 100, 0]),
                 width: 2
               }
             }),
             popupTemplate: {
               title: "Green Robin Farms",
-              content: "Farm boundary perimeter (approximate)"
+              content: "Farm boundary (approximate)"
             }
           });
           
-          // Create a new GraphicsLayer for the farm boundary
-          const farmLayer = new GraphicsLayer();
-          farmLayer.add(farmGraphic);
-          map.add(farmLayer);
-        });
+          fallbackLayer.add(boundaryGraphic);
+          map.add(fallbackLayer);
+        }
 
         // Create a graphics layer for the trees
         const treeLayer = new GraphicsLayer();
@@ -358,7 +448,7 @@
           legendContent.appendChild(legendItem);
         });
         
-        // Set up basemap switching
+        // Set up basemap switching with improved handling
         const basemapButtons = document.querySelectorAll('.basemap-btn');
         
         basemapButtons.forEach(button => {
@@ -367,11 +457,41 @@
             basemapButtons.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
             
-            // Change the basemap
+            // Get the basemap ID
             const basemapId = this.getAttribute('data-basemap');
-            map.basemap = basemapId;
+            console.log("Changing basemap to:", basemapId);
+            
+            // Change the basemap with explicit error handling
+            try {
+              map.basemap = basemapId;
+              
+              // Force redraw
+              setTimeout(() => {
+                view.goTo(view.extent);
+              }, 100);
+            } catch (e) {
+              console.error("Error changing basemap:", e);
+              // Try alternative method
+              map.basemap = {
+                portalItem: {
+                  id: getBasemapItemId(basemapId)
+                }
+              };
+            }
           });
         });
+        
+        // Helper function to get basemap IDs if needed
+        function getBasemapItemId(basemapName) {
+          const idMap = {
+            "topo-vector": "4f2e99ba65e34bb8af49733d9778fb8e",
+            "satellite": "86de95d4e0244cba80f0fa2c9403a7b2", 
+            "hybrid": "effe3475f05a4d608e66fd6eeb2113c0",
+            "streets-vector": "6e03e8c26a534cb1a23984f31b5b9eee",
+            "osm": "5e9b3685f4c24d8781073dd928ebda50"
+          };
+          return idMap[basemapName] || idMap["topo-vector"];
+        }
       });
     });
   </script>
