@@ -95,24 +95,16 @@
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
         const tree = {};
-        
-        // Process headers specifically handling coordinate order swap
         headers.forEach((header, index) => {
-          if (header === 'Longitude') {
-            // This is actually latitude in ArcGIS (y-coordinate)
-            tree.Latitude = parseFloat(values[index]);
-          } else if (header === ' Latitude') {
-            // This is actually longitude in ArcGIS (x-coordinate)
-            tree.Longitude = parseFloat(values[index]);
+          if (header === 'Longitude' || header === ' Latitude') {
+            tree[header.trim()] = parseFloat(values[index]);
           } else {
             tree[header.trim()] = values[index];
           }
         });
-        
         treeData.push(tree);
       }
       
-      debugLog(`Parsed CSV with coordinate swap: first tree at [${treeData[0].Longitude}, ${treeData[0].Latitude}]`);
       return treeData;
     }
     
@@ -227,10 +219,10 @@
         // Create an extent that encompasses all trees with padding
         const padding = 0.001; // About 100 meters
         const mapExtent = new Extent({
-          xmin: minLat - padding,  // Swapped: using latitude as x
-          ymin: minLong - padding, // Swapped: using longitude as y
-          xmax: maxLat + padding,  // Swapped: using latitude as x
-          ymax: maxLong + padding, // Swapped: using longitude as y
+          xmin: minLong - padding,
+          ymin: minLat - padding,
+          xmax: maxLong + padding,
+          ymax: maxLat + padding,
           spatialReference: { wkid: 4326 }
         });
         
@@ -240,9 +232,8 @@
         const view = new MapView({
           container: "viewDiv",
           map: map,
-          center: [centerLong, centerLat],  // [longitude, latitude]
+          center: [centerLong, centerLat],
           zoom: 16,
-          spatialReference: { wkid: 4326 },
           constraints: {
             snapToZoom: false
           }
@@ -305,9 +296,8 @@
             
             // Create point
             const point = new Point({
-              x: tree.Longitude, // Longitude is the x-coordinate
-              y: tree.Latitude,  // Latitude is the y-coordinate
-              spatialReference: { wkid: 4326 }
+              longitude: tree.Longitude,
+              latitude: tree.Latitude
             });
             
             // Create graphic
@@ -399,16 +389,10 @@
                 
                 if (feature.geometry.type === "Polygon") {
                   debugLog("GeoJSON contains Polygon geometry");
-                  // For polygon coordinates, we need to swap each [lon, lat] to [lat, lon]
-                  rings = feature.geometry.coordinates.map(ring => 
-                    ring.map(coord => [coord[1], coord[0]])
-                  );
+                  rings = feature.geometry.coordinates;
                 } else if (feature.geometry.type === "MultiPolygon") {
                   debugLog("GeoJSON contains MultiPolygon geometry");
-                  // For multipolygon coordinates, we need to swap at the coordinate level
-                  rings = feature.geometry.coordinates[0].map(ring => 
-                    ring.map(coord => [coord[1], coord[0]])
-                  );
+                  rings = feature.geometry.coordinates[0];
                 } else {
                   debugLog(`Unsupported geometry type: ${feature.geometry.type}`);
                   createFallbackBoundary(layer, fallbackExtent);
@@ -419,8 +403,7 @@
                 const graphic = new Graphic({
                   geometry: {
                     type: "polygon",
-                    rings: rings,
-                    spatialReference: { wkid: 4326 }
+                    rings: rings
                   },
                   symbol: {
                     type: "simple-fill",
