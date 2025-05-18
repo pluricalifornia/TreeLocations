@@ -410,118 +410,40 @@
           createLegend(treeTypesWithColors);
         }
         
-        // Function to load farm boundary
-        function loadFarmBoundary(layer, fallbackExtent) {
-          debugLog("Loading farm boundary from GeoJSON");
+        // Function to create legend
+        function createLegend(treeTypesWithColors) {
+          debugLog("Creating legend");
           
-          fetch("data/GreenRobinFarms.geojson")
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-              }
-              debugLog("Farm GeoJSON fetch response received");
-              return response.json();
-            })
-            .then(geojson => {
-              debugLog("Farm GeoJSON data loaded");
-              
-              if (geojson.features && geojson.features.length > 0) {
-                // Create graphics from GeoJSON features
-                geojson.features.forEach(feature => {
-                  // Determine geometry type
-                  let rings;
-                  
-                  if (feature.geometry.type === "Polygon") {
-                    debugLog("GeoJSON contains Polygon geometry");
-                    rings = feature.geometry.coordinates;
-                  } else if (feature.geometry.type === "MultiPolygon") {
-                    debugLog("GeoJSON contains MultiPolygon geometry");
-                    rings = feature.geometry.coordinates[0];
-                  } else {
-                    debugLog(`Unsupported geometry type: ${feature.geometry.type}`);
-                    return;
-                  }
-                  
-                  // Create graphic with Green Robin Farms styling
-                  const graphic = new Graphic({
-                    geometry: {
-                      type: "polygon",
-                      rings: rings
-                    },
-                    symbol: {
-                      type: "simple-fill",
-                      color: [10, 90, 49, 0.2], // Dark green with transparency (Green Robin Farms color)
-                      outline: {
-                        color: [10, 90, 49, 0.8], // Dark green (Green Robin Farms color)
-                        width: 2
-                      }
-                    },
-                    popupTemplate: {
-                      title: "Green Robin Farms",
-                      content: "Farm boundary perimeter"
-                    }
-                  });
-                  
-                  // Add to layer
-                  layer.add(graphic);
-                });
-                
-                debugLog("Farm boundary added to map");
-              } else {
-                debugLog("No features found in GeoJSON");
-                createFallbackBoundary(layer, fallbackExtent);
-              }
-            })
-            .catch(error => {
-              debugLog(`Error loading GeoJSON: ${error.message}`);
-              createFallbackBoundary(layer, fallbackExtent);
-            });
-        }
-        
-        // Function to create fallback boundary
-        function createFallbackBoundary(layer, extent) {
-          debugLog("Creating fallback farm boundary");
+          const legendContent = document.getElementById("legendContent");
+          legendContent.innerHTML = '';
           
-          // Create a polygon using the extent with extra padding
-          const padding = 0.0005; // Additional padding
-          
-          const polygon = {
-            type: "polygon",
-            rings: [
-              [
-                [extent.xmin - padding, extent.ymin - padding],
-                [extent.xmax + padding, extent.ymin - padding],
-                [extent.xmax + padding, extent.ymax + padding],
-                [extent.xmin - padding, extent.ymax + padding],
-                [extent.xmin - padding, extent.ymin - padding]
-              ]
-            ]
-          };
-          
-          // Create graphic with Green Robin Farms styling
-          const graphic = new Graphic({
-            geometry: polygon,
-            symbol: {
-              type: "simple-fill",
-              color: [10, 90, 49, 0.2], // Dark green with transparency (Green Robin Farms color)
-              outline: {
-                color: [10, 90, 49, 0.8], // Dark green (Green Robin Farms color)
-                width: 2
-              }
-            },
-            popupTemplate: {
-              title: "Green Robin Farms",
-              content: "Farm boundary perimeter (approximated)"
-            }
+          // Add each tree type to legend
+          Object.keys(treeTypesWithColors).forEach(treeType => {
+            const color = treeTypesWithColors[treeType];
+            
+            // Create legend item
+            const legendItem = document.createElement("div");
+            legendItem.className = "legend-item";
+            
+            // Create color box
+            const colorBox = document.createElement("div");
+            colorBox.className = "legend-color";
+            colorBox.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+            
+            // Create label
+            const label = document.createElement("div");
+            label.textContent = treeType;
+            
+            // Add to legend item
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(label);
+            
+            // Add to legend
+            legendContent.appendChild(legendItem);
           });
           
-          // Add to layer
-          layer.add(graphic);
-          
-          debugLog("Fallback farm boundary added to map");
+          debugLog("Legend created");
         }
-      }
-    });
         
         // Function to load farm boundary
         function loadFarmBoundary(layer, fallbackExtent) {
@@ -619,118 +541,6 @@
               color: [10, 90, 49, 0.2], // Dark green with transparency (Green Robin Farms color)
               outline: {
                 color: [10, 90, 49, 0.8], // Dark green (Green Robin Farms color)
-                width: 2
-              }
-            },
-            popupTemplate: {
-              title: "Green Robin Farms",
-              content: "Farm boundary perimeter (approximated)"
-            }
-          });
-          
-          // Add to layer
-          layer.add(graphic);
-          
-          debugLog("Fallback farm boundary added to map");
-        } // End of createFallbackBoundary function
-      }); // End of require function
-        
-        // Function to load farm boundary
-        function loadFarmBoundary(layer, fallbackExtent) {
-          debugLog("Loading farm boundary from GeoJSON");
-          
-          fetch("data/GreenRobinFarms.geojson")
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-              }
-              debugLog("Farm GeoJSON fetch response received");
-              return response.json();
-            })
-            .then(geojson => {
-              debugLog("Farm GeoJSON data loaded");
-              
-              if (geojson.features && geojson.features.length > 0) {
-                // Create graphics from GeoJSON features
-                geojson.features.forEach(feature => {
-                  // Determine geometry type
-                  let rings;
-                  
-                  if (feature.geometry.type === "Polygon") {
-                    debugLog("GeoJSON contains Polygon geometry");
-                    rings = feature.geometry.coordinates;
-                  } else if (feature.geometry.type === "MultiPolygon") {
-                    debugLog("GeoJSON contains MultiPolygon geometry");
-                    rings = feature.geometry.coordinates[0];
-                  } else {
-                    debugLog(`Unsupported geometry type: ${feature.geometry.type}`);
-                    return;
-                  }
-                  
-                  // Create graphic
-                  const graphic = new Graphic({
-                    geometry: {
-                      type: "polygon",
-                      rings: rings
-                    },
-                    symbol: {
-                      type: "simple-fill",
-                      color: [0, 100, 0, 0.2], // Dark green with transparency
-                      outline: {
-                        color: [0, 100, 0],
-                        width: 2
-                      }
-                    },
-                    popupTemplate: {
-                      title: "Green Robin Farms",
-                      content: "Farm boundary perimeter"
-                    }
-                  });
-                  
-                  // Add to layer
-                  layer.add(graphic);
-                });
-                
-                debugLog("Farm boundary added to map");
-              } else {
-                debugLog("No features found in GeoJSON");
-                createFallbackBoundary(layer, fallbackExtent);
-              }
-            })
-            .catch(error => {
-              debugLog(`Error loading GeoJSON: ${error.message}`);
-              createFallbackBoundary(layer, fallbackExtent);
-            });
-        }
-        
-        // Function to create fallback boundary
-        function createFallbackBoundary(layer, extent) {
-          debugLog("Creating fallback farm boundary");
-          
-          // Create a polygon using the extent with extra padding
-          const padding = 0.0005; // Additional padding
-          
-          const polygon = {
-            type: "polygon",
-            rings: [
-              [
-                [extent.xmin - padding, extent.ymin - padding],
-                [extent.xmax + padding, extent.ymin - padding],
-                [extent.xmax + padding, extent.ymax + padding],
-                [extent.xmin - padding, extent.ymax + padding],
-                [extent.xmin - padding, extent.ymin - padding]
-              ]
-            ]
-          };
-          
-          // Create graphic
-          const graphic = new Graphic({
-            geometry: polygon,
-            symbol: {
-              type: "simple-fill",
-              color: [0, 100, 0, 0.2], // Dark green with transparency
-              outline: {
-                color: [0, 100, 0],
                 width: 2
               }
             },
@@ -751,6 +561,10 @@
 </head>
 <body>
   <div id="viewDiv"></div>
+  
+  <div id="headerDiv">
+    <h2 id="headerText">Green Robin Farms - Tree Map</h2>
+  </div>
   
   <div id="infoDiv">
     <h3>Tree Locations</h3>
