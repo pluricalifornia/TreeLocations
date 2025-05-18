@@ -153,6 +153,41 @@
       border-left: 3px solid var(--purple);
     }
     
+    #debugMinimizeBtn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 20px;
+      height: 20px;
+      background-color: var(--light-green);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      z-index: 1;
+    }
+    
+    #debugMinimizeBtn:hover {
+      background-color: var(--medium-green);
+    }
+    
+    #debugDiv.minimized {
+      height: 30px;
+      overflow: hidden;
+    }
+    
+    #debugHeader {
+      font-weight: bold;
+      margin-bottom: 5px;
+      padding-right: 25px;
+    }
+    
     /* Mobile-specific styles */
     @media (max-width: 768px) {
       #headerDiv {
@@ -172,7 +207,7 @@
         top: auto;
         bottom: calc(15px + var(--safe-area-inset-bottom));
         width: calc(100% - 30px);
-        max-height: 40vh;
+        max-height: 35vh;
         overflow-y: auto;
         left: 15px;
         right: 15px;
@@ -183,7 +218,25 @@
       }
       
       .legend-item {
-        margin-bottom: 6px;
+        margin-bottom: 5px;
+        font-size: 12px;
+      }
+      
+      .legend-color {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+      }
+      
+      #legendDiv {
+        font-size: 12px;
+        padding: 8px;
+      }
+      
+      h3 {
+        font-size: 14px;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
       }
       
       .esri-view .esri-view-surface--touch-none {
@@ -241,8 +294,24 @@
       // Ensure latest message is visible
       debugDiv.scrollTop = debugDiv.scrollHeight;
       
-      // Show debug div
-      debugDiv.style.display = "block";
+      // Show debug div if not already visible
+      if (debugDiv.style.display !== "block") {
+        debugDiv.style.display = "block";
+      }
+    }
+    
+    // Toggle debug panel minimized state
+    function toggleDebugMinimized() {
+      const debugDiv = document.getElementById("debugDiv");
+      const minimizeBtn = document.getElementById("debugMinimizeBtn");
+      
+      if (debugDiv.classList.contains("minimized")) {
+        debugDiv.classList.remove("minimized");
+        minimizeBtn.textContent = "-";
+      } else {
+        debugDiv.classList.add("minimized");
+        minimizeBtn.textContent = "+";
+      }
     }
     
     // Parse CSV data
@@ -679,6 +748,9 @@
     </div>
   </div>
   
-  <div id="debugDiv"></div>
+  <div id="debugDiv">
+    <div id="debugHeader">Debug Console</div>
+    <button id="debugMinimizeBtn" onclick="toggleDebugMinimized()">-</button>
+  </div>
 </body>
 </html>
