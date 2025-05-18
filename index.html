@@ -60,8 +60,8 @@
     }
   </style>
   <!-- ArcGIS JavaScript API -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/arcgis-js-api/4.28.0/esri/themes/light/main.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/arcgis-js-api/4.28.0/esri/main.js"></script>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.28/"></script>
 </head>
 <body>
   <div id="viewDiv"></div>
@@ -74,13 +74,14 @@
   </div>
 
   <script>
-    // Read and parse CSV data
+    // Fetch and parse CSV data using fetch API
     async function loadTreeData() {
       try {
-        const response = await window.fs.readFile('data/tree-locations.csv', { encoding: 'utf8' });
+        const response = await fetch('data/tree-locations.csv');
+        const csvText = await response.text();
         
         // Parse CSV
-        const lines = response.trim().split('\n');
+        const lines = csvText.trim().split('\n');
         const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
         
         const data = [];
@@ -105,17 +106,21 @@
       }
     }
 
+    // Define ArcGIS modules to load
+    const arcgisModules = [
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer",
+      "esri/geometry/Point",
+      "esri/symbols/SimpleMarkerSymbol",
+      "esri/PopupTemplate"
+    ];
+
     // Initialize ArcGIS map after data is loaded
     loadTreeData().then(treeData => {
-      require([
-        "esri/Map",
-        "esri/views/MapView",
-        "esri/Graphic",
-        "esri/layers/GraphicsLayer",
-        "esri/geometry/Point",
-        "esri/symbols/SimpleMarkerSymbol",
-        "esri/PopupTemplate"
-      ], function(Map, MapView, Graphic, GraphicsLayer, Point, SimpleMarkerSymbol, PopupTemplate) {
+      // Use ArcGIS AMD loader which is included in the ArcGIS JS API
+      require(arcgisModules, function(Map, MapView, Graphic, GraphicsLayer, Point, SimpleMarkerSymbol, PopupTemplate) {
         
         // Create a map
         const map = new Map({
