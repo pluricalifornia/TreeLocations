@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Tree Location Map</title>
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #infoDiv {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 250px;
+      padding: 15px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 99;
+    }
+    #legendDiv {
+      padding: 10px;
+      background-color: white;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .tulip-tree {
+      background-color: #4CAF50;
+    }
+    .white-oak {
+      background-color: #FFC107;
+    }
+    .red-oak {
+      background-color: #F44336;
+    }
+    .sugar-maple {
+      background-color: #9C27B0;
+    }
+    .pine-tree {
+      background-color: #3F51B5;
+    }
+    h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+  </style>
+  <!-- ArcGIS JavaScript API -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/arcgis-js-api/4.28.0/esri/themes/light/main.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/arcgis-js-api/4.28.0/esri/main.js"></script>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  <div id="infoDiv">
+    <h3>Tree Locations</h3>
+    <div id="legendDiv">
+      <p>Tree Types:</p>
+      <div id="legendContent"></div>
+    </div>
+  </div>
+
+  <script>
+    // Read and parse CSV data
+    async function loadTreeData() {
+      try {
+        const response = await window.fs.readFile('Tree Locations  Sheet1.csv', { encoding: 'utf8' });
+        
+        // Parse CSV
+        const lines = response.trim().split('\n');
+        const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
+        
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(value => value.trim().replace(/"/g, ''));
+          
+          const entry = {};
+          headers.forEach((header, index) => {
+            if (header === 'Longitude' || header === ' Latitude') {
+              entry[header.trim()] = parseFloat(values[index]);
+            } else {
+              entry[header.trim()] = values[index];
+            }
+          });
+          data.push(entry);
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error loading tree data:", error);
+        return [];
+      }
+    }
+
+    // Initialize ArcGIS map after data is loaded
+    loadTreeData().then(treeData => {
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/Graphic",
+        "esri/layers/GraphicsLayer",
+        "esri/geometry/Point",
+        "esri/symbols/SimpleMarkerSymbol",
+        "esri/PopupTemplate"
+      ], function(Map, MapView, Graphic, GraphicsLayer, Point, SimpleMarkerSymbol, PopupTemplate) {
+        
+        // Create a map
+        const map = new Map({
+          basemap: "topo-vector"
+        });
+
+        // Create a map view
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [treeData[0].Longitude, treeData[0].Latitude], // Center on first tree
+          zoom: 15
+        });
+
+        // Create a graphics layer for the trees
+        const treeLayer = new GraphicsLayer();
+        map.add(treeLayer);
+
+        // Define color mapping for tree types
+        const treeColors = {
+          "Tulip Tree": [76, 175, 80],    // Green
+          "White Oak": [255, 193, 7],     // Amber
+          "Red Oak": [244, 67, 54],       // Red
+          "Sugar Maple": [156, 39, 176],  // Purple
+          "Pine Tree": [63, 81, 181]      // Indigo
+        };
+
+        // Default color for unknown tree types
+        const defaultColor = [0, 0, 0]; // Black
+
+        // Keep track of unique tree types
+        const uniqueTreeTypes = new Set();
+
+        // Add tree points to the map
+        treeData.forEach(tree => {
+          // Add to unique tree types
+          uniqueTreeTypes.add(tree.Type);
+          
+          // Get color for tree type (or default if not found)
+          const color = treeColors[tree.Type] || defaultColor;
+          
+          // Create a point
+          const point = new Point({
+            longitude: tree.Longitude,
+            latitude: tree.Latitude
+          });
+
+          // Create a symbol
+          const symbol = new SimpleMarkerSymbol({
+            color: color,
+            size: 12,
+            outline: {
+              color: [255, 255, 255],
+              width: 2
+            }
+          });
+
+          // Create a popup template
+          const popupTemplate = new PopupTemplate({
+            title: "{Type}",
+            content: "Longitude: {Longitude}<br>Latitude: {Latitude}"
+          });
+
+          // Create a graphic
+          const graphic = new Graphic({
+            geometry: point,
+            symbol: symbol,
+            attributes: {
+              Type: tree.Type,
+              Longitude: tree.Longitude,
+              Latitude: tree.Latitude
+            },
+            popupTemplate: popupTemplate
+          });
+
+          // Add the graphic to the layer
+          treeLayer.add(graphic);
+        });
+
+        // Create legend
+        const legendContent = document.getElementById("legendContent");
+        
+        // Sort tree types alphabetically
+        const sortedTreeTypes = Array.from(uniqueTreeTypes).sort();
+        
+        // Add legend items
+        sortedTreeTypes.forEach(treeType => {
+          const color = treeColors[treeType] || defaultColor;
+          const cssClass = treeType.toLowerCase().replace(/\s+/g, '-');
+          
+          const legendItem = document.createElement("div");
+          legendItem.className = "legend-item";
+          
+          const colorBox = document.createElement("div");
+          colorBox.className = `legend-color ${cssClass}`;
+          colorBox.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+          
+          const label = document.createElement("span");
+          label.textContent = treeType;
+          
+          legendItem.appendChild(colorBox);
+          legendItem.appendChild(label);
+          legendContent.appendChild(legendItem);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
