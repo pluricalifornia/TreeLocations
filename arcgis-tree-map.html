@@ -77,7 +77,7 @@
     // Read and parse CSV data
     async function loadTreeData() {
       try {
-        const response = await window.fs.readFile('Tree Locations  Sheet1.csv', { encoding: 'utf8' });
+        const response = await window.fs.readFile('data/tree-locations.csv', { encoding: 'utf8' });
         
         // Parse CSV
         const lines = response.trim().split('\n');
