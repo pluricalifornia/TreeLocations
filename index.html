@@ -71,181 +71,204 @@
       margin-top: 0;
       margin-bottom: 10px;
     }
+    #statusDiv {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 99;
+      padding: 10px;
+      max-width: 300px;
+      display: none;
+    }
   </style>
-  <!-- ArcGIS JavaScript API -->
+  
+  <!-- ArcGIS API for JavaScript -->
   <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
   <script src="https://js.arcgis.com/4.28/"></script>
-</head>
-<body>
-  <div id="viewDiv"></div>
-  <div id="infoDiv">
-    <h3>Tree Locations</h3>
-    <div id="legendDiv">
-      <p>Tree Types:</p>
-      <div id="legendContent"></div>
-    </div>
-  </div>
-  <div id="basemapGalleryDiv">
-    <h4>Basemaps</h4>
-    <button class="basemap-btn active" data-basemap="topo-vector">Topographic</button>
-    <button class="basemap-btn" data-basemap="satellite">Satellite</button>
-    <button class="basemap-btn" data-basemap="hybrid">Hybrid</button>
-    <button class="basemap-btn" data-basemap="streets-vector">Streets</button>
-    <button class="basemap-btn" data-basemap="osm">OpenStreetMap</button>
-  </div>
-
+  
   <script>
-    // Fetch and parse CSV data using fetch API
-    async function loadTreeData() {
-      try {
-        const response = await fetch('data/tree-locations.csv');
-        const csvText = await response.text();
-        
-        // Parse CSV
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
-        
-        const data = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(value => value.trim().replace(/"/g, ''));
-          
-          const entry = {};
-          headers.forEach((header, index) => {
-            if (header === 'Longitude' || header === ' Latitude') {
-              entry[header.trim()] = parseFloat(values[index]);
-            } else {
-              entry[header.trim()] = values[index];
-            }
-          });
-          data.push(entry);
-        }
-        
-        return data;
-      } catch (error) {
-        console.error("Error loading tree data:", error);
-        return [];
-      }
-    }
-
-    // Define ArcGIS modules to load
-    const arcgisModules = [
+    // Main application
+    require([
       "esri/Map",
       "esri/views/MapView",
       "esri/Graphic",
       "esri/layers/GraphicsLayer",
-      "esri/layers/FeatureLayer",
-      "esri/layers/GeoJSONLayer",
       "esri/geometry/Point",
       "esri/symbols/SimpleMarkerSymbol",
       "esri/symbols/SimpleFillSymbol",
-      "esri/renderers/SimpleRenderer",
-      "esri/PopupTemplate",
-      "esri/Color",
-      "esri/request",
-      "esri/geometry/geometryEngine"
-    ];
-
-    // Initialize ArcGIS map after data is loaded
-    loadTreeData().then(treeData => {
-      // Use ArcGIS AMD loader which is included in the ArcGIS JS API
-      require(arcgisModules, function(
-        Map, MapView, Graphic, GraphicsLayer, FeatureLayer, GeoJSONLayer, 
-        Point, SimpleMarkerSymbol, SimpleFillSymbol, SimpleRenderer, PopupTemplate, Color,
-        esriRequest, geometryEngine
-      ) {
-        
-        // Create a map with explicitly defined basemap for better compatibility
-        const map = new Map({
-          basemap: "topo-vector" 
+      "esri/request"
+    ], function(Map, MapView, Graphic, GraphicsLayer, Point, SimpleMarkerSymbol, SimpleFillSymbol, esriRequest) {
+      
+      // First, fetch the CSV data
+      fetch("data/tree-locations.csv")
+        .then(response => response.text())
+        .then(csvText => {
+          // Parse CSV data
+          const lines = csvText.trim().split('\n');
+          const headers = lines[0].split(',').map(h => h.trim());
+          
+          const treeData = [];
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+            const tree = {};
+            headers.forEach((header, index) => {
+              if (header === 'Longitude' || header === ' Latitude') {
+                tree[header.trim()] = parseFloat(values[index]);
+              } else {
+                tree[header.trim()] = values[index];
+              }
+            });
+            treeData.push(tree);
+          }
+          
+          // Initialize map with treeData
+          initializeMap(treeData);
+        })
+        .catch(error => {
+          console.error("Error loading CSV:", error);
+          document.getElementById("statusDiv").style.display = "block";
+          document.getElementById("statusDiv").innerHTML = "<p>Error loading tree data. Please check console for details.</p>";
         });
-
-        // Create a map view
+        
+      function initializeMap(treeData) {
+        // Status tracking
+        let basemapLoaded = false;
+        let geojsonLoaded = false;
+        let treesLoaded = false;
+        
+        // Define colors for tree types
+        const treeColors = {
+          "Tulip Tree": [76, 175, 80],     // Green
+          "White Oak": [255, 193, 7],      // Amber/Yellow
+          "Red Oak": [244, 67, 54],        // Red
+          "Sugar Maple": [156, 39, 176],   // Purple
+          "Pine Tree": [63, 81, 181],      // Indigo
+          "Elm": [0, 188, 212],            // Cyan
+          "Hickory": [255, 87, 34],        // Deep Orange
+          "Beech": [121, 85, 72],          // Brown
+          "Birch": [158, 158, 158],        // Grey
+          "Sycamore": [3, 169, 244],       // Light Blue
+          "Willow": [205, 220, 57],        // Lime
+          "Dogwood": [233, 30, 99],        // Pink
+          "Cedar": [96, 125, 139],         // Blue Grey
+          "Ash": [255, 152, 0],            // Orange
+          "Walnut": [33, 33, 33]           // Dark Grey
+        };
+        
+        // Additional colors if needed
+        const extraColors = [
+          [216, 27, 96],   // Pink
+          [30, 136, 229],  // Blue
+          [0, 150, 136],   // Teal
+          [255, 235, 59],  // Yellow
+          [103, 58, 183],  // Deep Purple
+          [139, 195, 74],  // Light Green
+          [255, 111, 0],   // Amber
+          [38, 166, 154]   // Teal light
+        ];
+        
+        // Track assigned colors
+        const treeTypesWithColors = {};
+        let colorIndex = 0;
+        
+        // Create graphics layers
+        const treeLayer = new GraphicsLayer({ id: "trees" });
+        const farmLayer = new GraphicsLayer({ id: "farm" });
+        
+        // Create map with explicit basemap
+        const map = new Map({
+          basemap: "topo-vector",
+          layers: [farmLayer, treeLayer]
+        });
+        
+        // Create the view centered on the first tree
         const view = new MapView({
           container: "viewDiv",
           map: map,
-          center: [treeData[0].Longitude, treeData[0].Latitude], // Center on first tree
+          center: [treeData[0].Longitude, treeData[0].Latitude],
           zoom: 15
         });
-
-        // Wait for view to be ready before doing anything else
+        
+        // Wait for view to be ready
         view.when(() => {
           console.log("View loaded successfully");
+          basemapLoaded = true;
+          updateStatus();
           
-          // Add tree layers after view is ready
+          // Add trees to map
           addTreesToMap();
           
-          // Load farm boundaries after view is ready
+          // Load farm boundaries
           loadFarmBoundaries();
           
-          // Set up basemap switching after view is ready
+          // Set up basemap switching
           setupBasemapSwitching();
         });
         
         // Function to add trees to map
         function addTreesToMap() {
-          // Create a graphics layer for the trees
-          const treeLayer = new GraphicsLayer();
-          map.add(treeLayer);
-
-          // Add tree points to the map
           treeData.forEach(tree => {
-            // Assign a unique color to each tree type
+            // Assign color to tree type
             if (!treeTypesWithColors[tree.Type]) {
-              let color;
               if (treeColors[tree.Type]) {
-                // Use predefined color if available
-                color = treeColors[tree.Type];
+                treeTypesWithColors[tree.Type] = treeColors[tree.Type];
               } else {
-                // Use an extra color if no predefined color
-                color = extraColors[colorIndex % extraColors.length];
+                treeTypesWithColors[tree.Type] = extraColors[colorIndex % extraColors.length];
                 colorIndex++;
               }
-              treeTypesWithColors[tree.Type] = color;
             }
             
-            // Get the color for this tree type
-            const color = treeTypesWithColors[tree.Type];
-            
-            // Create a point
-            const point = new Point({
+            // Create tree point
+            const point = {
+              type: "point",
               longitude: tree.Longitude,
               latitude: tree.Latitude
-            });
-
-            // Create a symbol
-            const symbol = new SimpleMarkerSymbol({
-              color: color,
+            };
+            
+            // Create tree symbol
+            const markerSymbol = {
+              type: "simple-marker",
+              color: treeTypesWithColors[tree.Type],
               size: 12,
               outline: {
                 color: [255, 255, 255],
                 width: 2
               }
-            });
-
-            // Create a popup template
-            const popupTemplate = new PopupTemplate({
-              title: "{Type}",
-              content: "Longitude: {Longitude}<br>Latitude: {Latitude}"
-            });
-
-            // Create a graphic
+            };
+            
+            // Create tree graphic
             const graphic = new Graphic({
               geometry: point,
-              symbol: symbol,
+              symbol: markerSymbol,
               attributes: {
                 Type: tree.Type,
                 Longitude: tree.Longitude,
                 Latitude: tree.Latitude
               },
-              popupTemplate: popupTemplate
+              popupTemplate: {
+                title: "{Type}",
+                content: "Longitude: {Longitude}<br>Latitude: {Latitude}"
+              }
             });
-
-            // Add the graphic to the layer
+            
+            // Add to tree layer
             treeLayer.add(graphic);
           });
-
+          
           // Create legend
+          createLegend();
+          
+          treesLoaded = true;
+          updateStatus();
+        }
+        
+        // Function to create legend
+        function createLegend() {
           const legendContent = document.getElementById("legendContent");
+          legendContent.innerHTML = ""; // Clear any existing content
           
           // Sort tree types alphabetically
           const sortedTreeTypes = Object.keys(treeTypesWithColors).sort();
@@ -272,76 +295,83 @@
         
         // Function to load farm boundaries
         function loadFarmBoundaries() {
-          // Attempt to load GeoJSON directly with esriRequest
-          esriRequest("data/GreenRobinFarms.geojson", {
-            responseType: "json"
-          }).then(response => {
-            console.log("Successfully loaded GeoJSON with esriRequest");
-            const geojson = response.data;
-            
-            // Create graphics from GeoJSON
-            if (geojson && geojson.features && geojson.features.length > 0) {
-              const graphicsLayer = new GraphicsLayer();
+          // Try to load GeoJSON
+          fetch("data/GreenRobinFarms.geojson")
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(geojson => {
+              console.log("GeoJSON loaded successfully");
               
-              geojson.features.forEach(feature => {
-                // Create polygon geometry from coordinates
-                let polygonGeometry;
-                if (feature.geometry.type === "Polygon") {
-                  polygonGeometry = {
-                    type: "polygon",
-                    rings: feature.geometry.coordinates
-                  };
-                } else if (feature.geometry.type === "MultiPolygon") {
-                  // Handle MultiPolygon by using the first polygon
-                  polygonGeometry = {
-                    type: "polygon",
-                    rings: feature.geometry.coordinates[0]
-                  };
-                }
-                
-                if (polygonGeometry) {
-                  const graphic = new Graphic({
-                    geometry: polygonGeometry,
-                    symbol: new SimpleFillSymbol({
+              if (geojson.features && geojson.features.length > 0) {
+                geojson.features.forEach(feature => {
+                  let rings;
+                  
+                  // Handle different geometry types
+                  if (feature.geometry.type === "Polygon") {
+                    rings = feature.geometry.coordinates;
+                  } else if (feature.geometry.type === "MultiPolygon") {
+                    rings = feature.geometry.coordinates[0];
+                  }
+                  
+                  if (rings) {
+                    // Create polygon geometry
+                    const polygon = {
+                      type: "polygon",
+                      rings: rings
+                    };
+                    
+                    // Create polygon symbol
+                    const fillSymbol = {
+                      type: "simple-fill",
                       color: [0, 100, 0, 0.2],
                       outline: {
                         color: [0, 100, 0],
                         width: 2
                       }
-                    }),
-                    popupTemplate: {
-                      title: "Green Robin Farms",
-                      content: "Farm boundary perimeter"
-                    }
-                  });
-                  
-                  graphicsLayer.add(graphic);
-                }
-              });
-              
-              map.add(graphicsLayer);
-            } else {
-              console.error("Invalid GeoJSON structure");
+                    };
+                    
+                    // Create polygon graphic
+                    const graphic = new Graphic({
+                      geometry: polygon,
+                      symbol: fillSymbol,
+                      popupTemplate: {
+                        title: "Green Robin Farms",
+                        content: "Farm boundary"
+                      }
+                    });
+                    
+                    // Add to farm layer
+                    farmLayer.add(graphic);
+                  }
+                });
+                
+                geojsonLoaded = true;
+              } else {
+                throw new Error("No features found in GeoJSON");
+              }
+            })
+            .catch(error => {
+              console.error("Error loading GeoJSON:", error);
               createFallbackBoundary();
-            }
-          }).catch(error => {
-            console.error("Error loading GeoJSON with esriRequest:", error);
-            createFallbackBoundary();
-          });
+            })
+            .finally(() => {
+              updateStatus();
+            });
         }
         
         // Function to create fallback boundary
         function createFallbackBoundary() {
           console.log("Creating fallback boundary");
           
-          // Create a GraphicsLayer for the fallback boundary
-          const fallbackLayer = new GraphicsLayer();
-          
-          // Find the extent of all trees to create a boundary around them
-          let minLong = Number.MAX_VALUE;
-          let maxLong = Number.MIN_VALUE;
-          let minLat = Number.MAX_VALUE;
-          let maxLat = Number.MIN_VALUE;
+          // Calculate boundary that encompasses all trees
+          let minLong = Infinity;
+          let maxLong = -Infinity;
+          let minLat = Infinity;
+          let maxLat = -Infinity;
           
           treeData.forEach(tree => {
             minLong = Math.min(minLong, tree.Longitude);
@@ -350,44 +380,55 @@
             maxLat = Math.max(maxLat, tree.Latitude);
           });
           
-          // Add some padding
-          const padding = 0.0025; // Increased padding for visibility
+          // Add padding
+          const padding = 0.003;
           minLong -= padding;
           maxLong += padding;
           minLat -= padding;
           maxLat += padding;
           
-          // Create a polygon that encompasses all trees
-          const boundaryPolygon = {
-            type: "polygon",
-            rings: [
-              [
-                [minLong, minLat],
-                [maxLong, minLat],
-                [maxLong, maxLat],
-                [minLong, maxLat],
-                [minLong, minLat]
-              ]
+          // Create polygon rings
+          const rings = [
+            [
+              [minLong, minLat],
+              [maxLong, minLat],
+              [maxLong, maxLat],
+              [minLong, maxLat],
+              [minLong, minLat]
             ]
+          ];
+          
+          // Create polygon geometry
+          const polygon = {
+            type: "polygon",
+            rings: rings
           };
           
-          const boundaryGraphic = new Graphic({
-            geometry: boundaryPolygon,
-            symbol: new SimpleFillSymbol({
-              color: [0, 100, 0, 0.2],
-              outline: {
-                color: [0, 100, 0],
-                width: 2
-              }
-            }),
+          // Create polygon symbol
+          const fillSymbol = {
+            type: "simple-fill",
+            color: [0, 100, 0, 0.2],
+            outline: {
+              color: [0, 100, 0],
+              width: 2
+            }
+          };
+          
+          // Create polygon graphic
+          const graphic = new Graphic({
+            geometry: polygon,
+            symbol: fillSymbol,
             popupTemplate: {
               title: "Green Robin Farms",
-              content: "Farm boundary (approximate)"
+              content: "Farm boundary (approximated)"
             }
           });
           
-          fallbackLayer.add(boundaryGraphic);
-          map.add(fallbackLayer);
+          // Add to farm layer
+          farmLayer.add(graphic);
+          
+          geojsonLoaded = true;
+          updateStatus();
         }
         
         // Function to set up basemap switching
@@ -396,231 +437,75 @@
           
           basemapButtons.forEach(button => {
             button.addEventListener('click', function() {
-              // Get the basemap ID
               const basemapId = this.getAttribute('data-basemap');
-              console.log("Changing basemap to:", basemapId);
+              console.log("Switching to basemap:", basemapId);
               
               // Update active button
               basemapButtons.forEach(btn => btn.classList.remove('active'));
               this.classList.add('active');
               
-              // Change the basemap with proper error handling
-              try {
-                map.basemap = basemapId;
-              } catch (e) {
-                console.error("Error changing basemap:", e);
-                
-                // Fallback to alternate method for satellite
-                if (basemapId === "satellite") {
-                  map.basemap = { 
-                    portalItem: { 
-                      id: "86de95d4e0244cba80f0fa2c9403a7b2" 
-                    } 
-                  };
-                } else if (basemapId === "hybrid") {
-                  map.basemap = { 
-                    portalItem: { 
-                      id: "effe3475f05a4d608e66fd6eeb2113c0" 
-                    } 
-                  };
-                } else if (basemapId === "streets-vector") {
-                  map.basemap = { 
-                    portalItem: { 
-                      id: "6e03e8c26a534cb1a23984f31b5b9eee" 
-                    } 
-                  };
-                } else if (basemapId === "osm") {
-                  map.basemap = { 
-                    portalItem: { 
-                      id: "5e9b3685f4c24d8781073dd928ebda50" 
-                    } 
-                  };
-                } else {
-                  // Default to topo if all else fails
-                  map.basemap = "topo-vector";
-                }
-              }
+              // Change basemap
+              map.basemap = basemapId;
             });
           });
         }
-
-        // Create a graphics layer for the trees
-        const treeLayer = new GraphicsLayer();
-        map.add(treeLayer);
-
-        // Define unique and visually distinct colors for tree types
-        const treeColors = {
-          "Tulip Tree": [76, 175, 80],     // Green
-          "White Oak": [255, 193, 7],      // Amber/Yellow
-          "Red Oak": [244, 67, 54],        // Red
-          "Sugar Maple": [156, 39, 176],   // Purple
-          "Pine Tree": [63, 81, 181],      // Indigo
-          "Elm": [0, 188, 212],            // Cyan
-          "Hickory": [255, 87, 34],        // Deep Orange
-          "Beech": [121, 85, 72],          // Brown
-          "Birch": [158, 158, 158],        // Grey
-          "Sycamore": [3, 169, 244],       // Light Blue
-          "Willow": [205, 220, 57],        // Lime
-          "Dogwood": [233, 30, 99],        // Pink
-          "Cedar": [96, 125, 139],         // Blue Grey
-          "Ash": [255, 152, 0],            // Orange
-          "Walnut": [33, 33, 33]           // Dark Grey
-        };
-
-        // Default color for unknown tree types
-        const defaultColor = [0, 0, 0]; // Black
-
-        // Keep track of used colors and tree types with their colors
-        const treeTypesWithColors = {};
-        let colorIndex = 0;
         
-        // Additional colors if we need more than predefined ones
-        const extraColors = [
-          [216, 27, 96],   // Pink
-          [30, 136, 229],  // Blue
-          [0, 150, 136],   // Teal
-          [255, 235, 59],  // Yellow
-          [103, 58, 183],  // Deep Purple
-          [139, 195, 74],  // Light Green
-          [255, 111, 0],   // Amber
-          [38, 166, 154],  // Teal light
-          [239, 83, 80],   // Red light
-          [171, 71, 188],  // Purple light
-          [66, 165, 245],  // Blue light
-          [38, 198, 218],  // Cyan light
-          [102, 187, 106], // Green light
-          [212, 225, 87],  // Lime light
-          [255, 202, 40]   // Yellow light
-        ];
-
-        // Add tree points to the map
-        treeData.forEach(tree => {
-          // Assign a unique color to each tree type
-          if (!treeTypesWithColors[tree.Type]) {
-            let color;
-            if (treeColors[tree.Type]) {
-              // Use predefined color if available
-              color = treeColors[tree.Type];
+        // Update status display
+        function updateStatus() {
+          const statusDiv = document.getElementById("statusDiv");
+          
+          if (basemapLoaded && treesLoaded && geojsonLoaded) {
+            statusDiv.style.display = "none";
+          } else {
+            statusDiv.style.display = "block";
+            statusDiv.innerHTML = "<p>Loading map components:</p><ul>";
+            if (basemapLoaded) {
+              statusDiv.innerHTML += "<li>✅ Basemap loaded</li>";
             } else {
-              // Use an extra color if no predefined color
-              color = extraColors[colorIndex % extraColors.length];
-              colorIndex++;
+              statusDiv.innerHTML += "<li>⏳ Loading basemap...</li>";
             }
-            treeTypesWithColors[tree.Type] = color;
+            
+            if (treesLoaded) {
+              statusDiv.innerHTML += "<li>✅ Trees loaded</li>";
+            } else {
+              statusDiv.innerHTML += "<li>⏳ Loading trees...</li>";
+            }
+            
+            if (geojsonLoaded) {
+              statusDiv.innerHTML += "<li>✅ Farm boundary loaded</li>";
+            } else {
+              statusDiv.innerHTML += "<li>⏳ Loading farm boundary...</li>";
+            }
+            
+            statusDiv.innerHTML += "</ul>";
           }
-          
-          // Get the color for this tree type
-          const color = treeTypesWithColors[tree.Type];
-          
-          // Create a point
-          const point = new Point({
-            longitude: tree.Longitude,
-            latitude: tree.Latitude
-          });
-
-          // Create a symbol
-          const symbol = new SimpleMarkerSymbol({
-            color: color,
-            size: 12,
-            outline: {
-              color: [255, 255, 255],
-              width: 2
-            }
-          });
-
-          // Create a popup template
-          const popupTemplate = new PopupTemplate({
-            title: "{Type}",
-            content: "Longitude: {Longitude}<br>Latitude: {Latitude}"
-          });
-
-          // Create a graphic
-          const graphic = new Graphic({
-            geometry: point,
-            symbol: symbol,
-            attributes: {
-              Type: tree.Type,
-              Longitude: tree.Longitude,
-              Latitude: tree.Latitude
-            },
-            popupTemplate: popupTemplate
-          });
-
-          // Add the graphic to the layer
-          treeLayer.add(graphic);
-        });
-
-        // Create legend
-        const legendContent = document.getElementById("legendContent");
-        
-        // Sort tree types alphabetically
-        const sortedTreeTypes = Object.keys(treeTypesWithColors).sort();
-        
-        // Add legend items
-        sortedTreeTypes.forEach(treeType => {
-          const color = treeTypesWithColors[treeType];
-          
-          const legendItem = document.createElement("div");
-          legendItem.className = "legend-item";
-          
-          const colorBox = document.createElement("div");
-          colorBox.className = "legend-color";
-          colorBox.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-          
-          const label = document.createElement("span");
-          label.textContent = treeType;
-          
-          legendItem.appendChild(colorBox);
-          legendItem.appendChild(label);
-          legendContent.appendChild(legendItem);
-        });
-        
-        // Set up basemap switching with improved handling
-        const basemapButtons = document.querySelectorAll('.basemap-btn');
-        
-        basemapButtons.forEach(button => {
-          button.addEventListener('click', function() {
-            // Update active button
-            basemapButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Get the basemap ID
-            const basemapId = this.getAttribute('data-basemap');
-            console.log("Changing basemap to:", basemapId);
-            
-            // Change the basemap with explicit error handling
-            try {
-              map.basemap = basemapId;
-              
-              // Force redraw
-              setTimeout(() => {
-                view.goTo(view.extent);
-              }, 100);
-            } catch (e) {
-              console.error("Error changing basemap:", e);
-              // Try alternative method
-              map.basemap = {
-                portalItem: {
-                  id: getBasemapItemId(basemapId)
-                }
-              };
-            }
-          });
-        });
-        
-        // Helper function to get basemap IDs if needed
-        function getBasemapItemId(basemapName) {
-          const idMap = {
-            "topo-vector": "4f2e99ba65e34bb8af49733d9778fb8e",
-            "satellite": "86de95d4e0244cba80f0fa2c9403a7b2", 
-            "hybrid": "effe3475f05a4d608e66fd6eeb2113c0",
-            "streets-vector": "6e03e8c26a534cb1a23984f31b5b9eee",
-            "osm": "5e9b3685f4c24d8781073dd928ebda50"
-          };
-          return idMap[basemapName] || idMap["topo-vector"];
         }
-      });
+      }
     });
   </script>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  
+  <div id="statusDiv">
+    <p>Loading map components...</p>
+  </div>
+  
+  <div id="infoDiv">
+    <h3>Tree Locations</h3>
+    <div id="legendDiv">
+      <p>Tree Types:</p>
+      <div id="legendContent"></div>
+    </div>
+  </div>
+  
+  <div id="basemapGalleryDiv">
+    <h4>Basemaps</h4>
+    <button class="basemap-btn active" data-basemap="topo-vector">Topographic</button>
+    <button class="basemap-btn" data-basemap="satellite">Satellite</button>
+    <button class="basemap-btn" data-basemap="hybrid">Hybrid</button>
+    <button class="basemap-btn" data-basemap="streets-vector">Streets</button>
+    <button class="basemap-btn" data-basemap="osm">OpenStreetMap</button>
+  </div>
 </body>
 </html>
