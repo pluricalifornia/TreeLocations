@@ -254,7 +254,7 @@
         const defaultColor = [0, 0, 0]; // Black
 
         // Keep track of used colors and tree types with their colors
-        const treeTypesWithColors = new Map();
+        const treeTypesWithColors = {};
         let colorIndex = 0;
         
         // Additional colors if we need more than predefined ones
@@ -279,7 +279,7 @@
         // Add tree points to the map
         treeData.forEach(tree => {
           // Assign a unique color to each tree type
-          if (!treeTypesWithColors.has(tree.Type)) {
+          if (!treeTypesWithColors[tree.Type]) {
             let color;
             if (treeColors[tree.Type]) {
               // Use predefined color if available
@@ -289,11 +289,11 @@
               color = extraColors[colorIndex % extraColors.length];
               colorIndex++;
             }
-            treeTypesWithColors.set(tree.Type, color);
+            treeTypesWithColors[tree.Type] = color;
           }
           
           // Get the color for this tree type
-          const color = treeTypesWithColors.get(tree.Type);
+          const color = treeTypesWithColors[tree.Type];
           
           // Create a point
           const point = new Point({
@@ -337,11 +337,11 @@
         const legendContent = document.getElementById("legendContent");
         
         // Sort tree types alphabetically
-        const sortedTreeTypes = Array.from(treeTypesWithColors.keys()).sort();
+        const sortedTreeTypes = Object.keys(treeTypesWithColors).sort();
         
         // Add legend items
         sortedTreeTypes.forEach(treeType => {
-          const color = treeTypesWithColors.get(treeType);
+          const color = treeTypesWithColors[treeType];
           
           const legendItem = document.createElement("div");
           legendItem.className = "legend-item";
