@@ -34,7 +34,7 @@
     #headerDiv {
       position: absolute;
       top: calc(15px + var(--safe-area-inset-top));
-      left: 120px; /* Moved further right to avoid zoom controls */
+      right: 15px; /* Positioned in upper right */
       z-index: 99;
       display: flex;
       align-items: center;
@@ -47,7 +47,7 @@
     #logoContainer {
       position: absolute;
       top: calc(80px + var(--safe-area-inset-top)); /* Positioned below title */
-      left: 120px; /* Aligned with title */
+      right: 15px; /* Aligned with title in upper right */
       z-index: 99;
       background-color: var(--white);
       padding: 10px;
@@ -59,7 +59,7 @@
     }
     
     #logoImg {
-      height: 80px; /* Significantly larger */
+      height: 80px; /* Larger on desktop */
     }
     
     #headerText {
@@ -67,6 +67,19 @@
       margin: 0;
       font-weight: 600;
       font-size: 20px;
+    }
+    
+    #infoDiv {
+      position: absolute;
+      top: calc(190px + var(--safe-area-inset-top)); /* Positioned below logo */
+      right: 15px;
+      width: 280px;
+      padding: 15px;
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 99;
+      border-top: 5px solid var(--dark-green);
     }
     
     #infoDiv {
@@ -492,30 +505,55 @@
           nextBasemap: "satellite"
         });
         
-        // Add widgets to the UI
-        view.ui.add(homeWidget, "top-left");
-        
         // Detect if on mobile
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
         if (isMobile) {
+          // Position zoom controls in middle-left for mobile
+          view.ui.move("zoom", "manual");
+          view.ui.add(view.zoom, {
+            position: "manual",
+            index: 0
+          });
+          view.ui.move(view.zoom, {
+            position: {
+              y: Math.floor(window.innerHeight / 2),
+              x: 15
+            }
+          });
+          
+          // Position home button above zoom controls
+          view.ui.add(homeWidget, {
+            position: "manual",
+            index: 0
+          });
+          view.ui.move(homeWidget, {
+            position: {
+              y: Math.floor(window.innerHeight / 2) - 50,
+              x: 15
+            }
+          });
+          
           // Position basemap toggle in top-right for mobile
           view.ui.add(basemapToggle, "top-right");
           
           // Adjust map UI for better touch interaction
           view.ui.padding = {
-            top: 120, // Extra space for header
+            top: 120, // Space for header and logo
             bottom: document.documentElement.style.getPropertyValue('--safe-area-inset-bottom') ? 
                     parseInt(document.documentElement.style.getPropertyValue('--safe-area-inset-bottom')) + 15 : 15,
-            right: 15 // Ensure padding for the basemap toggle
+            right: 15
           };
         } else {
-          // Position basemap toggle in bottom-right for desktop
+          // Desktop positioning
+          // Add Home widget to top-left
+          view.ui.add(homeWidget, "top-left");
+          
+          // Add BasemapToggle widget to bottom-right
           view.ui.add(basemapToggle, "bottom-right");
           
-          // Add more padding for desktop to account for the header and logo
           view.ui.padding = {
-            left: 220, // Ensure space for zoom controls without overlap
-            top: 180  // Space for title and logo
+            right: 300 // Space for title, logo and legend
           };
         }
         
