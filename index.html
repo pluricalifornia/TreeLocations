@@ -71,19 +71,6 @@
     
     #infoDiv {
       position: absolute;
-      top: calc(190px + var(--safe-area-inset-top)); /* Positioned below logo */
-      right: 15px;
-      width: 280px;
-      padding: 15px;
-      background-color: var(--white);
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      z-index: 99;
-      border-top: 5px solid var(--dark-green);
-    }
-    
-    #infoDiv {
-      position: absolute;
       top: calc(15px + var(--safe-area-inset-top));
       right: 15px;
       width: 280px;
@@ -201,6 +188,53 @@
       padding-right: 25px;
     }
     
+    /* Sort controls */
+    #sortControls {
+      margin-top: 15px;
+      border-top: 2px solid var(--light-green);
+      padding-top: 8px;
+    }
+    
+    #sortControls label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: var(--dark-green);
+    }
+    
+    #sortSelect {
+      width: 100%;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid var(--medium-green);
+      background-color: var(--white);
+      color: var(--dark-green);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    
+    #sortOrderBtn {
+      background-color: var(--medium-green);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #sortOrderBtn:hover {
+      background-color: var(--dark-green);
+    }
+    
+    #sortOrderIcon {
+      margin-left: 5px;
+    }
+    
     /* Mobile-specific styles */
     @media (max-width: 768px) {
       #headerDiv {
@@ -259,6 +293,16 @@
         margin-bottom: 10px;
         padding-bottom: 5px;
         white-space: nowrap;
+      }
+      
+      #sortControls {
+        margin-top: 10px;
+        padding-top: 5px;
+      }
+      
+      #sortSelect, #sortOrderBtn {
+        font-size: 12px;
+        padding: 4px 8px;
       }
       
       .esri-view .esri-view-surface--touch-none {
@@ -336,6 +380,88 @@
       }
     }
     
+    // Generate distinct colors for tree types
+    function generateDistinctColors(count) {
+      // Define base colors for Green Robin Farms brand
+      const baseColors = [
+        [10, 90, 49],      // Dark green
+        [42, 125, 70],     // Medium green
+        [107, 170, 81],    // Light green
+        [123, 117, 168],   // Purple
+        [200, 197, 84],    // Yellow
+        [158, 158, 158],   // Grey
+        [3, 169, 244],     // Light Blue
+        [205, 220, 57],    // Lime
+        [233, 30, 99],     // Pink
+        [96, 125, 139],    // Blue Grey
+        [255, 152, 0],     // Orange
+        [33, 33, 33],      // Dark Grey
+        [139, 195, 74],    // Light Green
+        [121, 85, 72],     // Brown
+        [63, 81, 181],     // Indigo
+        [156, 39, 176],    // Deep Purple
+        [0, 188, 212],     // Cyan
+        [255, 87, 34],     // Deep Orange
+        [76, 175, 80],     // Green
+        [255, 235, 59]     // Light Yellow
+      ];
+      
+      // If we need more colors than our base set, generate them
+      if (count > baseColors.length) {
+        // Start with base colors
+        const colors = [...baseColors];
+        
+        // Generate additional colors using HSL for better distribution
+        for (let i = baseColors.length; i < count; i++) {
+          // Use golden ratio to create well-distributed hues
+          const hue = (i * 137.508) % 360; // golden angle approximation
+          const saturation = 60 + Math.random() * 20; // 60-80%
+          const lightness = 45 + Math.random() * 10; // 45-55%
+          
+          // Convert HSL to RGB
+          const rgb = hslToRgb(hue, saturation, lightness);
+          colors.push(rgb);
+        }
+        
+        return colors;
+      }
+      
+      // If we have enough base colors, return the needed amount
+      return baseColors.slice(0, count);
+    }
+    
+    // Helper function to convert HSL to RGB
+    function hslToRgb(h, s, l) {
+      s /= 100;
+      l /= 100;
+      
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = l - c / 2;
+      
+      let r, g, b;
+      
+      if (h < 60) {
+        [r, g, b] = [c, x, 0];
+      } else if (h < 120) {
+        [r, g, b] = [x, c, 0];
+      } else if (h < 180) {
+        [r, g, b] = [0, c, x];
+      } else if (h < 240) {
+        [r, g, b] = [0, x, c];
+      } else if (h < 300) {
+        [r, g, b] = [x, 0, c];
+      } else {
+        [r, g, b] = [c, 0, x];
+      }
+      
+      return [
+        Math.round((r + m) * 255),
+        Math.round((g + m) * 255),
+        Math.round((b + m) * 255)
+      ];
+    }
+    
     // Parse CSV data
     function parseCSV(csvText) {
       const lines = csvText.trim().split('\n');
@@ -356,6 +482,62 @@
       }
       
       return treeData;
+    }
+    
+    // Global variables for sorting
+    let treeLayer, treeData, treeTypesWithColors;
+    let sortField = "Type";
+    let sortAscending = true;
+    
+    // Sort trees and update the map
+    function sortTrees() {
+      debugLog(`Sorting trees by ${sortField} ${sortAscending ? 'ascending' : 'descending'}`);
+      
+      // Clear the current tree layer
+      treeLayer.removeAll();
+      
+      // Sort the tree data
+      const sortedTreeData = [...treeData].sort((a, b) => {
+        let valueA = a[sortField];
+        let valueB = b[sortField];
+        
+        // Handle numeric fields
+        if (sortField === 'Longitude' || sortField === 'Latitude') {
+          valueA = parseFloat(valueA);
+          valueB = parseFloat(valueB);
+        }
+        
+        // Sort direction
+        if (sortAscending) {
+          return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+      });
+      
+      // Add sorted trees to map
+      addTreesToMap(sortedTreeData, treeLayer, false);
+      
+      // Update sort button text
+      updateSortButtonText();
+    }
+    
+    // Toggle sort order
+    function toggleSortOrder() {
+      sortAscending = !sortAscending;
+      sortTrees();
+    }
+    
+    // Update sort button text
+    function updateSortButtonText() {
+      const sortOrderIcon = document.getElementById("sortOrderIcon");
+      sortOrderIcon.textContent = sortAscending ? "↑" : "↓";
+    }
+    
+    // Handle sort field change
+    function handleSortChange() {
+      sortField = document.getElementById("sortSelect").value;
+      sortTrees();
     }
     
     // Use the AMD pattern as recommended by ArcGIS
@@ -383,7 +565,7 @@
           debugLog("Tree CSV data loaded");
           
           // Parse tree data
-          const treeData = parseCSV(csvText);
+          treeData = parseCSV(csvText);
           debugLog(`Parsed ${treeData.length} trees from CSV`);
           
           // Initialize map
@@ -393,39 +575,11 @@
           debugLog(`Error loading CSV: ${error.message}`);
         });
       
-      function initializeMap(treeData) {
+      function initializeMap(initialTreeData) {
         debugLog("Initializing map");
         
-        // Define colors for tree types - using Green Robin Farms colors
-        const treeColors = {
-          "Tulip Tree": [107, 170, 81],    // Light green
-          "White Oak": [200, 197, 84],     // Yellow
-          "Red Oak": [123, 117, 168],      // Purple
-          "Sugar Maple": [10, 90, 49],     // Dark green
-          "Pine Tree": [42, 125, 70],      // Medium green
-          "Elm": [107, 170, 81],           // Light green
-          "Hickory": [123, 117, 168],      // Purple
-          "Beech": [200, 197, 84]          // Yellow
-        };
-        
-        // Extra colors for any other tree types
-        const extraColors = [
-          [158, 158, 158],    // Grey
-          [3, 169, 244],      // Light Blue
-          [205, 220, 57],     // Lime
-          [233, 30, 99],      // Pink
-          [96, 125, 139],     // Blue Grey
-          [255, 152, 0],      // Orange
-          [33, 33, 33],       // Dark Grey
-          [139, 195, 74]      // Light Green
-        ];
-        
-        // Track tree types and their colors
-        const treeTypesWithColors = {};
-        let colorIndex = 0;
-        
         // Create graphics layer for trees
-        const treeLayer = new GraphicsLayer({
+        treeLayer = new GraphicsLayer({
           id: "treeLayer",
           title: "Trees"
         });
@@ -453,7 +607,7 @@
         let minLat = Infinity;
         let maxLat = -Infinity;
         
-        treeData.forEach(tree => {
+        initialTreeData.forEach(tree => {
           sumLong += tree.Longitude;
           sumLat += tree.Latitude;
           
@@ -463,8 +617,8 @@
           maxLat = Math.max(maxLat, tree.Latitude);
         });
         
-        const centerLong = sumLong / treeData.length;
-        const centerLat = sumLat / treeData.length;
+        const centerLong = sumLong / initialTreeData.length;
+        const centerLat = sumLat / initialTreeData.length;
         
         // Create an extent that encompasses all trees with padding
         const padding = 0.001; // About 100 meters
@@ -543,37 +697,57 @@
             debugLog(`Error setting initial extent: ${error.message}`);
           });
           
-          // Add trees to map
-          addTreesToMap(treeData, treeLayer);
+          // Add trees to map (with initial sort by Type)
+          addTreesToMap(initialTreeData, treeLayer, true);
           
           // Load farm boundary
           loadFarmBoundary(farmLayer, mapExtent);
+          
+          // Setup sort controls
+          setupSortControls();
+          
+          // Initialize the sort button text
+          updateSortButtonText();
         }, error => {
           debugLog(`Error loading view: ${error.message}`);
         });
         
-        // Function to add trees to map
-        function addTreesToMap(treeData, layer) {
-          debugLog("Adding trees to map");
+        // Setup sort controls
+        function setupSortControls() {
+          const sortSelect = document.getElementById("sortSelect");
+          const sortOrderBtn = document.getElementById("sortOrderBtn");
           
-          treeData.forEach(tree => {
-            // Assign color if not already assigned
-            if (!treeTypesWithColors[tree.Type]) {
-              let color;
-              if (treeColors[tree.Type]) {
-                color = treeColors[tree.Type];
-              } else {
-                color = extraColors[colorIndex % extraColors.length];
-                colorIndex++;
-              }
-              treeTypesWithColors[tree.Type] = color;
-            }
+          // Add change event listener to sort select
+          sortSelect.addEventListener("change", handleSortChange);
+          
+          // Add click event listener to sort order button
+          sortOrderBtn.addEventListener("click", toggleSortOrder);
+        }
+        
+        // Function to add trees to map
+        function addTreesToMap(data, layer, initialLoad) {
+          if (initialLoad) {
+            debugLog("Adding trees to map");
             
+            // Get unique tree types
+            const treeTypes = [...new Set(data.map(tree => tree.Type))];
+            debugLog(`Found ${treeTypes.length} unique tree types`);
+            
+            // Generate distinct colors for all tree types
+            const colors = generateDistinctColors(treeTypes.length);
+            
+            // Assign colors to tree types
+            treeTypesWithColors = {};
+            treeTypes.forEach((type, index) => {
+              treeTypesWithColors[type] = colors[index];
+            });
+          }
+          
+          data.forEach(tree => {
             // Get the color for this tree type
             const color = treeTypesWithColors[tree.Type];
             
-            // Create point - Here the longitude and latitude
-            // are correctly used in the Point constructor
+            // Create point
             const point = new Point({
               longitude: tree.Longitude,
               latitude: tree.Latitude
@@ -606,10 +780,12 @@
             layer.add(graphic);
           });
           
-          debugLog(`Added ${treeData.length} trees to map`);
+          debugLog(`Added ${data.length} trees to map`);
           
-          // Create legend
-          createLegend(treeTypesWithColors);
+          if (initialLoad) {
+            // Create legend
+            createLegend(treeTypesWithColors);
+          }
         }
         
         // Function to create legend
@@ -619,8 +795,11 @@
           const legendContent = document.getElementById("legendContent");
           legendContent.innerHTML = '';
           
+          // Sort tree types alphabetically for the legend
+          const sortedTypes = Object.keys(treeTypesWithColors).sort();
+          
           // Add each tree type to legend
-          Object.keys(treeTypesWithColors).forEach(treeType => {
+          sortedTypes.forEach(treeType => {
             const color = treeTypesWithColors[treeType];
             
             // Create legend item
@@ -778,6 +957,17 @@
     <div id="legendDiv">
       <p>Tree Types:</p>
       <div id="legendContent"></div>
+    </div>
+    
+    <!-- Sort controls -->
+    <div id="sortControls">
+      <label for="sortSelect">Sort Trees By:</label>
+      <select id="sortSelect">
+        <option value="Type">Tree Type</option>
+        <option value="Latitude">Latitude</option>
+        <option value="Longitude">Longitude</option>
+      </select>
+      <button id="sortOrderBtn">Sort Order <span id="sortOrderIcon">↑</span></button>
     </div>
   </div>
   
