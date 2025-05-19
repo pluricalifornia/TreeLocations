@@ -34,26 +34,32 @@
     #headerDiv {
       position: absolute;
       top: calc(15px + var(--safe-area-inset-top));
-      left: 15px;
+      left: 120px; /* Moved further right to avoid zoom controls */
       z-index: 99;
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
       background-color: var(--white);
-      padding: 12px 15px;
+      padding: 8px 15px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
     
     #logoContainer {
+      position: absolute;
+      top: calc(80px + var(--safe-area-inset-top)); /* Positioned below title */
+      left: 120px; /* Aligned with title */
+      z-index: 99;
+      background-color: var(--white);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 10px;
     }
     
     #logoImg {
-      height: 60px;
+      height: 80px; /* Significantly larger */
     }
     
     #headerText {
@@ -506,9 +512,10 @@
           // Position basemap toggle in bottom-right for desktop
           view.ui.add(basemapToggle, "bottom-right");
           
-          // Add more padding on the left for desktop to account for the larger header
+          // Add more padding for desktop to account for the header and logo
           view.ui.padding = {
-            left: 250 // Ensure space for the header with logo
+            left: 220, // Ensure space for zoom controls without overlap
+            top: 180  // Space for title and logo
           };
         }
         
@@ -744,12 +751,13 @@
 <body>
   <div id="viewDiv"></div>
   
-  <!-- Logo and header in one container -->
+  <!-- Separate title and logo containers -->
   <div id="headerDiv">
     <h2 id="headerText">Green Robin Farms - Tree Map</h2>
-    <div id="logoContainer">
-      <img id="logoImg" src="images/GRFarms.png" alt="Green Robin Farms Logo">
-    </div>
+  </div>
+  
+  <div id="logoContainer">
+    <img id="logoImg" src="images/GRFarms.png" alt="Green Robin Farms Logo">
   </div>
   
   <div id="infoDiv">
