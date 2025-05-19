@@ -73,13 +73,15 @@
       position: absolute;
       top: calc(15px + var(--safe-area-inset-top));
       right: 15px;
-      width: 280px;
+      width: 300px;
       padding: 15px;
       background-color: var(--white);
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
       z-index: 99;
       border-top: 5px solid var(--dark-green);
+      max-height: 80vh;
+      overflow-y: auto;
     }
     
     #legendDiv {
@@ -93,6 +95,15 @@
       display: flex;
       align-items: center;
       margin-bottom: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+      padding: 3px 5px;
+      border-radius: 4px;
+    }
+    
+    .legend-item:hover {
+      background-color: rgba(10, 90, 49, 0.1);
+      transform: translateX(3px);
     }
     
     .legend-color {
@@ -102,6 +113,19 @@
       margin-right: 10px;
       border: 2px solid var(--white);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .legend-label {
+      flex-grow: 1;
+    }
+    
+    .legend-count {
+      background-color: var(--medium-green);
+      color: white;
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: bold;
     }
     
     h3 {
@@ -188,11 +212,98 @@
       padding-right: 25px;
     }
     
+    /* Search and filter controls */
+    #searchFilterDiv {
+      margin-top: 15px;
+      border-top: 2px solid var(--light-green);
+      padding-top: 8px;
+    }
+    
+    #searchFilterDiv label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: var(--dark-green);
+    }
+    
+    #treeTypeFilter {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid var(--medium-green);
+      background-color: var(--white);
+      color: var(--dark-green);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    
+    #treeTypeFilter option {
+      padding: 4px;
+    }
+    
+    #zoomToTreeTypeBtn {
+      background-color: var(--medium-green);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    
+    #zoomToTreeTypeBtn:hover {
+      background-color: var(--dark-green);
+    }
+    
+    #zoomToTreeTypeBtn i {
+      margin-right: 6px;
+    }
+    
+    /* Statistics panel */
+    #statsDiv {
+      margin-top: 15px;
+      border-top: 2px solid var(--light-green);
+      padding-top: 8px;
+    }
+    
+    .stat-card {
+      background-color: rgba(10, 90, 49, 0.1);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-left: 4px solid var(--medium-green);
+    }
+    
+    .stat-title {
+      color: var(--dark-green);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--dark-green);
+    }
+    
+    .stat-subtitle {
+      font-size: 12px;
+      color: #666;
+      margin-top: 3px;
+    }
+    
     /* Sort controls */
     #sortControls {
       margin-top: 15px;
       border-top: 2px solid var(--light-green);
       padding-top: 8px;
+      margin-bottom: 15px;
     }
     
     #sortControls label {
@@ -235,6 +346,39 @@
       margin-left: 5px;
     }
     
+    /* Search box */
+    #searchBox {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--medium-green);
+      background-color: var(--white);
+      color: var(--dark-green);
+      font-size: 14px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    
+    #searchBox::placeholder {
+      color: #999;
+    }
+    
+    #clearSearchBtn {
+      position: absolute;
+      right: 25px;
+      margin-top: -38px;
+      background: none;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+    
+    #clearSearchBtn:hover {
+      color: var(--dark-green);
+    }
+    
     /* Mobile-specific styles */
     @media (max-width: 768px) {
       #headerDiv {
@@ -262,9 +406,9 @@
       #infoDiv {
         top: auto;
         bottom: calc(15px + var(--safe-area-inset-bottom));
-        max-width: fit-content;
+        max-width: 75%;
         width: auto;
-        max-height: 35vh;
+        max-height: 50vh;
         overflow-y: auto;
         right: 15px;
         left: auto;
@@ -295,14 +439,26 @@
         white-space: nowrap;
       }
       
-      #sortControls {
+      #searchFilterDiv, #statsDiv, #sortControls {
         margin-top: 10px;
         padding-top: 5px;
       }
       
-      #sortSelect, #sortOrderBtn {
+      #treeTypeFilter, #sortSelect, #sortOrderBtn, #zoomToTreeTypeBtn {
         font-size: 12px;
         padding: 4px 8px;
+      }
+      
+      .stat-card {
+        padding: 8px;
+      }
+      
+      .stat-title {
+        font-size: 12px;
+      }
+      
+      .stat-value {
+        font-size: 16px;
       }
       
       .esri-view .esri-view-surface--touch-none {
@@ -380,43 +536,73 @@
       }
     }
     
-    // Generate distinct colors for tree types
+    // Generate distinct colors for tree types with more variety
     function generateDistinctColors(count) {
-      // Define base colors for Green Robin Farms brand
-      const baseColors = [
-        [10, 90, 49],      // Dark green
-        [42, 125, 70],     // Medium green
-        [107, 170, 81],    // Light green
-        [123, 117, 168],   // Purple
-        [200, 197, 84],    // Yellow
-        [158, 158, 158],   // Grey
-        [3, 169, 244],     // Light Blue
-        [205, 220, 57],    // Lime
-        [233, 30, 99],     // Pink
-        [96, 125, 139],    // Blue Grey
-        [255, 152, 0],     // Orange
-        [33, 33, 33],      // Dark Grey
-        [139, 195, 74],    // Light Green
-        [121, 85, 72],     // Brown
-        [63, 81, 181],     // Indigo
-        [156, 39, 176],    // Deep Purple
-        [0, 188, 212],     // Cyan
-        [255, 87, 34],     // Deep Orange
-        [76, 175, 80],     // Green
-        [255, 235, 59]     // Light Yellow
+      // Define highly distinct colors with minimal greens
+      const distinctColors = [
+        [200, 30, 60],     // Red
+        [0, 110, 230],     // Blue
+        [255, 150, 0],     // Orange
+        [110, 70, 180],    // Purple
+        [220, 190, 40],    // Yellow
+        [0, 160, 160],     // Teal
+        [180, 70, 180],    // Magenta
+        [100, 60, 30],     // Brown
+        [40, 110, 60],     // Forest Green (only one green)
+        [255, 90, 160],    // Pink
+        [70, 90, 190],     // Indigo
+        [210, 140, 60],    // Amber
+        [140, 30, 90],     // Burgundy
+        [0, 170, 230],     // Sky Blue
+        [170, 110, 40],    // Bronze
+        [230, 30, 100],    // Crimson
+        [160, 190, 80],    // Lime
+        [90, 40, 130],     // Violet
+        [255, 180, 60],    // Gold
+        [30, 100, 130],    // Steel Blue
+        [180, 30, 30],     // Dark Red
+        [130, 170, 190],   // Slate Blue
+        [160, 80, 0],      // Chocolate
+        [140, 210, 240],   // Light Blue
+        [80, 60, 80]       // Aubergine
       ];
       
-      // If we need more colors than our base set, generate them
-      if (count > baseColors.length) {
-        // Start with base colors
-        const colors = [...baseColors];
+      // If we need more colors than our base set, generate them with high variety
+      if (count > distinctColors.length) {
+        // Start with distinct colors
+        const colors = [...distinctColors];
         
-        // Generate additional colors using HSL for better distribution
-        for (let i = baseColors.length; i < count; i++) {
-          // Use golden ratio to create well-distributed hues
-          const hue = (i * 137.508) % 360; // golden angle approximation
-          const saturation = 60 + Math.random() * 20; // 60-80%
-          const lightness = 45 + Math.random() * 10; // 45-55%
+        // Track used hues to ensure variety
+        const usedHueRanges = colors.map(() => ({
+          start: Math.floor(Math.random() * 360),
+          width: 30
+        }));
+        
+        // Generate additional colors using HSL with better variety
+        for (let i = distinctColors.length; i < count; i++) {
+          // Find an unused hue section
+          let hue;
+          let attempts = 0;
+          
+          do {
+            hue = Math.floor(Math.random() * 360);
+            attempts++;
+            
+            // Avoid infinite loop
+            if (attempts > 100) break;
+          } while (usedHueRanges.some(range => 
+            Math.abs(((hue - range.start + 180) % 360) - 180) < range.width/2
+          ));
+          
+          // Add this hue to used ranges
+          usedHueRanges.push({
+            start: hue,
+            width: 30
+          });
+          
+          // Vary saturation and lightness for more diversity
+          const saturation = 70 + Math.random() * 25; // 70-95%
+          const lightness = 35 + Math.random() * 30; // 35-65%
           
           // Convert HSL to RGB
           const rgb = hslToRgb(hue, saturation, lightness);
@@ -426,8 +612,8 @@
         return colors;
       }
       
-      // If we have enough base colors, return the needed amount
-      return baseColors.slice(0, count);
+      // If we have enough colors, return the needed amount
+      return distinctColors.slice(0, count);
     }
     
     // Helper function to convert HSL to RGB
@@ -484,10 +670,11 @@
       return treeData;
     }
     
-    // Global variables for sorting
-    let treeLayer, treeData, treeTypesWithColors;
+    // Global variables for sorting and filtering
+    let treeLayer, mapView, treeData, treeTypesWithColors, treeFilterLayer;
     let sortField = "Type";
     let sortAscending = true;
+    let currentFilterType = "All";
     
     // Sort trees and update the map
     function sortTrees() {
@@ -496,8 +683,14 @@
       // Clear the current tree layer
       treeLayer.removeAll();
       
+      // Get the data to sort (all data or filtered data)
+      let dataToSort = [...treeData];
+      if (currentFilterType !== "All") {
+        dataToSort = dataToSort.filter(tree => tree.Type === currentFilterType);
+      }
+      
       // Sort the tree data
-      const sortedTreeData = [...treeData].sort((a, b) => {
+      const sortedTreeData = dataToSort.sort((a, b) => {
         let valueA = a[sortField];
         let valueB = b[sortField];
         
@@ -510,6 +703,850 @@
         // Sort direction
         if (sortAscending) {
           return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+      });
+      
+      // Add sorted trees to map
+      addTreesToMap(sortedTreeData, treeLayer, false);
+      
+      // Update sort button text
+      updateSortButtonText();
+    }0;
+        } else {
+          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+      });
+      
+      // Add sorted trees to map
+      addTreesToMap(sortedTreeData, treeLayer, false);
+      
+      // Update sort button text
+      updateSortButtonText();
+    }
+    
+    // Toggle sort order
+    function toggleSortOrder() {
+      sortAscending = !sortAscending;
+      sortTrees();
+    }
+    
+    // Update sort button text
+    function updateSortButtonText() {
+      const sortOrderIcon = document.getElementById("sortOrderIcon");
+      sortOrderIcon.textContent = sortAscending ? "↑" : "↓";
+    }
+    
+    // Handle sort field change
+    function handleSortChange() {
+      sortField = document.getElementById("sortSelect").value;
+      sortTrees();
+    }
+    
+    // Filter trees by type
+    function filterTreesByType() {
+      const typeFilter = document.getElementById("treeTypeFilter");
+      currentFilterType = typeFilter.value;
+      
+      // Clear both layers
+      treeLayer.removeAll();
+      
+      if (currentFilterType === "All") {
+        // Show all trees
+        addTreesToMap(treeData, treeLayer, false);
+      } else {
+        // Filter trees by type
+        const filteredTrees = treeData.filter(tree => tree.Type === currentFilterType);
+        addTreesToMap(filteredTrees, treeLayer, false);
+        
+        // Zoom to filtered trees if requested
+        if (document.getElementById("autoZoomCheck").checked) {
+          zoomToTreeType();
+        }
+      }
+      
+      // Update statistics
+      updateTreeStatistics();
+    }
+    
+    // Zoom to the selected tree type
+    function zoomToTreeType() {
+      const typeFilter = document.getElementById("treeTypeFilter");
+      const treeType = typeFilter.value;
+      
+      if (treeType === "All") {
+        // Zoom to all trees
+        zoomToAllTrees();
+        return;
+      }
+      
+      // Find trees of the selected type
+      const filteredTrees = treeData.filter(tree => tree.Type === treeType);
+      
+      if (filteredTrees.length === 0) {
+        debugLog(`No trees found of type: ${treeType}`);
+        return;
+      }
+      
+      // Calculate the center and extent of filtered trees
+      let sumLong = 0;
+      let sumLat = 0;
+      let minLong = Infinity;
+      let maxLong = -Infinity;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+      
+      filteredTrees.forEach(tree => {
+        sumLong += tree.Longitude;
+        sumLat += tree.Latitude;
+        
+        minLong = Math.min(minLong, tree.Longitude);
+        maxLong = Math.max(maxLong, tree.Longitude);
+        minLat = Math.min(minLat, tree.Latitude);
+        maxLat = Math.max(maxLat, tree.Latitude);
+      });
+      
+      // Add padding to the extent for better visibility
+      const padding = 0.0005; // About 50 meters
+      
+      // Create an extent that encompasses all filtered trees
+      const filteredExtent = {
+        xmin: minLong - padding,
+        ymin: minLat - padding,
+        xmax: maxLong + padding,
+        ymax: maxLat + padding,
+        spatialReference: { wkid: 4326 }
+      };
+      
+      // Zoom to the extent
+      mapView.goTo(filteredExtent, {
+        duration: 1000,
+        easing: "ease-in-out"
+      }).then(() => {
+        debugLog(`Zoomed to ${filteredTrees.length} ${treeType} trees`);
+        
+        // Flash the trees of this type
+        flashTreesOfType(treeType);
+      }).catch(error => {
+        debugLog(`Error zooming to tree type: ${error.message}`);
+      });
+    }
+    
+    // Flash trees of a specific type for emphasis
+    function flashTreesOfType(treeType) {
+      // Find all graphics of this tree type
+      const treesToFlash = treeLayer.graphics.filter(graphic => 
+        graphic.attributes.Type === treeType
+      );
+      
+      // Original size of markers
+      const originalSize = isMobile ? 15 : 12;
+      const flashSize = originalSize * 1.5;
+      
+      // Flash 3 times
+      let flashCount = 0;
+      
+      function flash() {
+        // Grow markers
+        treesToFlash.forEach(graphic => {
+          graphic.symbol.size = flashSize;
+        });
+        
+        // Redraw the layer
+        treeLayer.graphics = treeLayer.graphics.clone();
+        
+        // Schedule shrink
+        setTimeout(() => {
+          // Shrink markers
+          treesToFlash.forEach(graphic => {
+            graphic.symbol.size = originalSize;
+          });
+          
+          // Redraw the layer
+          treeLayer.graphics = treeLayer.graphics.clone();
+          
+          // Continue flashing if needed
+          flashCount++;
+          if (flashCount < 3) {
+            setTimeout(flash, 300);
+          }
+        }, 300);
+      }
+      
+      // Start flashing
+      flash();
+    }
+    
+    // Zoom to all trees
+    function zoomToAllTrees() {
+      // Calculate the extent of all trees
+      let minLong = Infinity;
+      let maxLong = -Infinity;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+      
+      treeData.forEach(tree => {
+        minLong = Math.min(minLong, tree.Longitude);
+        maxLong = Math.max(maxLong, tree.Longitude);
+        minLat = Math.min(minLat, tree.Latitude);
+        maxLat = Math.max(maxLat, tree.Latitude);
+      });
+      
+      // Add padding for better visibility
+      const padding = 0.001; // About 100 meters
+      
+      // Create an extent that encompasses all trees
+      const allTreesExtent = {
+        xmin: minLong - padding,
+        ymin: minLat - padding,
+        xmax: maxLong + padding,
+        ymax: maxLat + padding,
+        spatialReference: { wkid: 4326 }
+      };
+      
+      // Zoom to the extent
+      mapView.goTo(allTreesExtent, {
+        duration: 1000,
+        easing: "ease-in-out"
+      }).then(() => {
+        debugLog("Zoomed to show all trees");
+      }).catch(error => {
+        debugLog(`Error zooming to all trees: ${error.message}`);
+      });
+    }
+    
+    // Search trees by text input
+    function searchTrees() {
+      const searchText = document.getElementById("searchBox").value.trim().toLowerCase();
+      
+      // Show clear button if there's search text
+      document.getElementById("clearSearchBtn").style.display = searchText ? "block" : "none";
+      
+      if (!searchText) {
+        // Reset to show all or current filter
+        filterTreesByType();
+        return;
+      }
+      
+      // Clear the tree layer
+      treeLayer.removeAll();
+      
+      // Start with current filter if not "All"
+      let searchBase = treeData;
+      if (currentFilterType !== "All") {
+        searchBase = searchBase.filter(tree => tree.Type === currentFilterType);
+      }
+      
+      // Find trees that match the search text in any field
+      const matchingTrees = searchBase.filter(tree => {
+        // Check if any property contains the search text
+        return Object.values(tree).some(value => 
+          String(value).toLowerCase().includes(searchText)
+        );
+      });
+      
+      // Add matching trees to map
+      addTreesToMap(matchingTrees, treeLayer, false);
+      
+      // Update search results count
+      document.getElementById("searchResults").textContent = 
+        `Found ${matchingTrees.length} trees matching "${searchText}"`;
+      
+      // If we have results and auto-zoom is checked, zoom to them
+      if (matchingTrees.length > 0 && document.getElementById("autoZoomCheck").checked) {
+        zoomToSearchResults(matchingTrees);
+      }
+    }
+    
+    // Clear search
+    function clearSearch() {
+      document.getElementById("searchBox").value = "";
+      document.getElementById("clearSearchBtn").style.display = "none";
+      document.getElementById("searchResults").textContent = "";
+      
+      // Reset to current filter
+      filterTreesByType();
+    }
+    
+    // Zoom to search results
+    function zoomToSearchResults(matchingTrees) {
+      // Calculate the extent of matching trees
+      let minLong = Infinity;
+      let maxLong = -Infinity;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+      
+      matchingTrees.forEach(tree => {
+        minLong = Math.min(minLong, tree.Longitude);
+        maxLong = Math.max(maxLong, tree.Longitude);
+        minLat = Math.min(minLat, tree.Latitude);
+        maxLat = Math.max(maxLat, tree.Latitude);
+      });
+      
+      // Add padding for better visibility
+      const padding = 0.0005; // About 50 meters
+      
+      // Create an extent that encompasses matching trees
+      const searchExtent = {
+        xmin: minLong - padding,
+        ymin: minLat - padding,
+        xmax: maxLong + padding,
+        ymax: maxLat + padding,
+        spatialReference: { wkid: 4326 }
+      };
+      
+      // Zoom to the extent
+      mapView.goTo(searchExtent, {
+        duration: 1000,
+        easing: "ease-in-out"
+      }).then(() => {
+        debugLog(`Zoomed to ${matchingTrees.length} search results`);
+      }).catch(error => {
+        debugLog(`Error zooming to search results: ${error.message}`);
+      });
+    }
+    
+    // Update tree statistics
+    function updateTreeStatistics() {
+      // Count trees by type
+      const treeCountsByType = {};
+      let totalCount = 0;
+      
+      treeData.forEach(tree => {
+        treeCountsByType[tree.Type] = (treeCountsByType[tree.Type] || 0) + 1;
+        totalCount++;
+      });
+      
+      // Update total tree count
+      document.getElementById("totalTreeCount").textContent = totalCount;
+      
+      // Calculate dominant tree type
+      let dominantType = "";
+      let maxCount = 0;
+      
+      Object.entries(treeCountsByType).forEach(([type, count]) => {
+        if (count > maxCount) {
+          dominantType = type;
+          maxCount = count;
+        }
+      });
+      
+      // Update dominant tree type
+      document.getElementById("dominantTreeType").textContent = dominantType;
+      document.getElementById("dominantTreeCount").textContent = maxCount;
+      document.getElementById("dominantTreePercentage").textContent = 
+        `(${Math.round((maxCount / totalCount) * 100)}%)`;
+      
+      // Update tree type count in legend
+      const legendItems = document.querySelectorAll(".legend-item");
+      legendItems.forEach(item => {
+        const typeLabel = item.querySelector(".legend-label").textContent;
+        const countElement = item.querySelector(".legend-count");
+        
+        if (countElement) {
+          countElement.textContent = treeCountsByType[typeLabel] || 0;
+        }
+      });
+      
+      // Update current filter stats if filtered
+      if (currentFilterType !== "All") {
+        const filteredCount = treeCountsByType[currentFilterType] || 0;
+        document.getElementById("filteredTreeCount").textContent = filteredCount;
+        document.getElementById("filteredTreePercentage").textContent = 
+          `(${Math.round((filteredCount / totalCount) * 100)}%)`;
+        
+        document.getElementById("filteredStats").style.display = "block";
+      } else {
+        document.getElementById("filteredStats").style.display = "none";
+      }
+    }
+    
+    // Handle legend item click to filter
+    function handleLegendItemClick(treeType) {
+      // Set the filter dropdown to this tree type
+      document.getElementById("treeTypeFilter").value = treeType;
+      
+      // Apply the filter
+      filterTreesByType();
+      
+      // Zoom to the tree type if auto-zoom is checked
+      if (document.getElementById("autoZoomCheck").checked) {
+        zoomToTreeType();
+      }
+    }
+    
+    // Use the AMD pattern as recommended by ArcGIS
+    require([
+      "esri/Map", 
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer",
+      "esri/geometry/Point",
+      "esri/widgets/BasemapToggle",
+      "esri/widgets/Home",
+      "esri/geometry/Extent",
+      "esri/request"
+    ], function(ArcGISMap, MapView, Graphic, GraphicsLayer, Point, BasemapToggle, Home, Extent, esriRequest) {
+      
+      debugLog("ArcGIS modules loaded successfully");
+      
+      // Load tree data first
+      fetch("data/tree-locations.csv")
+        .then(response => {
+          debugLog("Tree CSV fetch response received");
+          return response.text();
+        })
+        .then(csvText => {
+          debugLog("Tree CSV data loaded");
+          
+          // Parse tree data
+          treeData = parseCSV(csvText);
+          debugLog(`Parsed ${treeData.length} trees from CSV`);
+          
+          // Initialize map
+          initializeMap(treeData);
+        })
+        .catch(error => {
+          debugLog(`Error loading CSV: ${error.message}`);
+        });
+      
+      function initializeMap(initialTreeData) {
+        debugLog("Initializing map");
+        
+        // Create graphics layer for trees
+        treeLayer = new GraphicsLayer({
+          id: "treeLayer",
+          title: "Trees"
+        });
+        
+        // Create graphics layer for farm boundary
+        const farmLayer = new GraphicsLayer({
+          id: "farmLayer",
+          title: "Farm Boundary"
+        });
+        
+        // Create map with custom basemap
+        const map = new ArcGISMap({
+          basemap: "topo-vector"
+        });
+        
+        // Add layers to map
+        map.add(farmLayer);
+        map.add(treeLayer);
+        
+        // Calculate the center point of trees
+        let sumLong = 0;
+        let sumLat = 0;
+        let minLong = Infinity;
+        let maxLong = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+        
+        initialTreeData.forEach(tree => {
+          sumLong += tree.Longitude;
+          sumLat += tree.Latitude;
+          
+          minLong = Math.min(minLong, tree.Longitude);
+          maxLong = Math.max(maxLong, tree.Longitude);
+          minLat = Math.min(minLat, tree.Latitude);
+          maxLat = Math.max(maxLat, tree.Latitude);
+        });
+        
+        const centerLong = sumLong / initialTreeData.length;
+        const centerLat = sumLat / initialTreeData.length;
+        
+        // Create an extent that encompasses all trees with padding
+        const padding = 0.001; // About 100 meters
+        const mapExtent = new Extent({
+          xmin: minLong - padding,
+          ymin: minLat - padding,
+          xmax: maxLong + padding,
+          ymax: maxLat + padding,
+          spatialReference: { wkid: 4326 }
+        });
+        
+        debugLog(`Map center: ${centerLong.toFixed(5)}, ${centerLat.toFixed(5)}`);
+        
+        // Create view with initial extent
+        mapView = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [centerLong, centerLat],
+          zoom: 16,
+          constraints: {
+            snapToZoom: false
+          },
+          // Add custom styling to match Green Robin Farms theme
+          highlightOptions: {
+            color: [10, 90, 49, 0.5],
+            haloColor: [107, 170, 81]
+          }
+        });
+        
+        // Add Home widget
+        const homeWidget = new Home({
+          view: mapView
+        });
+        
+        // Add BasemapToggle widget
+        const basemapToggle = new BasemapToggle({
+          view: mapView,
+          nextBasemap: "satellite"
+        });
+        
+        // Add widgets to the UI
+        mapView.ui.add(homeWidget, "top-left");
+        
+        // Detect if on mobile
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+        if (isMobile) {
+          // Position basemap toggle in top-right for mobile
+          mapView.ui.add(basemapToggle, "top-right");
+          
+          // Adjust map UI for better touch interaction
+          mapView.ui.padding = {
+            top: 120, // Extra space for header
+            bottom: document.documentElement.style.getPropertyValue('--safe-area-inset-bottom') ? 
+                    parseInt(document.documentElement.style.getPropertyValue('--safe-area-inset-bottom')) + 15 : 15,
+            right: 15 // Ensure padding for the basemap toggle
+          };
+        } else {
+          // Position basemap toggle in bottom-right for desktop
+          mapView.ui.add(basemapToggle, "bottom-right");
+          
+          // Add more padding for desktop to account for the header and logo
+          mapView.ui.padding = {
+            left: 220, // Ensure space for zoom controls without overlap
+            top: 180  // Space for title and logo
+          };
+        }
+        
+        // Wait for view to load
+        mapView.when(() => {
+          debugLog("Map view loaded successfully");
+          
+          // Set initial extent to show all trees
+          mapView.goTo(mapExtent).then(() => {
+            debugLog("Map zoomed to show all trees");
+          }).catch(error => {
+            debugLog(`Error setting initial extent: ${error.message}`);
+          });
+          
+          // Add trees to map (with initial sort by Type)
+          addTreesToMap(initialTreeData, treeLayer, true);
+          
+          // Load farm boundary
+          loadFarmBoundary(farmLayer, mapExtent);
+          
+          // Setup controls
+          setupControls();
+          
+          // Initialize the sort button text
+          updateSortButtonText();
+          
+          // Update statistics
+          updateTreeStatistics();
+        }, error => {
+          debugLog(`Error loading view: ${error.message}`);
+        });
+        
+        // Setup all interactive controls
+        function setupControls() {
+          // Sort controls
+          const sortSelect = document.getElementById("sortSelect");
+          const sortOrderBtn = document.getElementById("sortOrderBtn");
+          
+          // Add change event listener to sort select
+          sortSelect.addEventListener("change", handleSortChange);
+          
+          // Add click event listener to sort order button
+          sortOrderBtn.addEventListener("click", toggleSortOrder);
+          
+          // Filter controls
+          const treeTypeFilter = document.getElementById("treeTypeFilter");
+          const zoomToTreeTypeBtn = document.getElementById("zoomToTreeTypeBtn");
+          const autoZoomCheck = document.getElementById("autoZoomCheck");
+          
+          // Populate tree type filter dropdown
+          populateTreeTypeFilter(treeTypeFilter);
+          
+          // Add change event listener to tree type filter
+          treeTypeFilter.addEventListener("change", filterTreesByType);
+          
+          // Add click event listener to zoom button
+          zoomToTreeTypeBtn.addEventListener("click", zoomToTreeType);
+          
+          // Search controls
+          const searchBox = document.getElementById("searchBox");
+          const clearSearchBtn = document.getElementById("clearSearchBtn");
+          
+          // Add event listeners for search
+          searchBox.addEventListener("input", searchTrees);
+          clearSearchBtn.addEventListener("click", clearSearch);
+          
+          // Add event listener for legend items
+          document.getElementById("legendContent").addEventListener("click", function(e) {
+            const legendItem = e.target.closest(".legend-item");
+            if (legendItem) {
+              const treeType = legendItem.querySelector(".legend-label").textContent;
+              handleLegendItemClick(treeType);
+            }
+          });
+        }
+        
+        // Populate tree type filter dropdown
+        function populateTreeTypeFilter(selectElement) {
+          // Clear existing options
+          selectElement.innerHTML = "";
+          
+          // Add "All" option
+          const allOption = document.createElement("option");
+          allOption.value = "All";
+          allOption.textContent = "All Tree Types";
+          selectElement.appendChild(allOption);
+          
+          // Get unique tree types and sort alphabetically
+          const treeTypes = [...new Set(treeData.map(tree => tree.Type))].sort();
+          
+          // Add options for each tree type
+          treeTypes.forEach(type => {
+            const option = document.createElement("option");
+            option.value = type;
+            option.textContent = type;
+            selectElement.appendChild(option);
+          });
+        }
+        
+        // Function to add trees to map
+        function addTreesToMap(data, layer, initialLoad) {
+          if (initialLoad) {
+            debugLog("Adding trees to map");
+            
+            // Get unique tree types
+            const treeTypes = [...new Set(data.map(tree => tree.Type))];
+            debugLog(`Found ${treeTypes.length} unique tree types`);
+            
+            // Generate distinct colors for all tree types
+            const colors = generateDistinctColors(treeTypes.length);
+            
+            // Assign colors to tree types
+            treeTypesWithColors = {};
+            treeTypes.forEach((type, index) => {
+              treeTypesWithColors[type] = colors[index];
+            });
+          }
+          
+          data.forEach(tree => {
+            // Get the color for this tree type
+            const color = treeTypesWithColors[tree.Type];
+            
+            // Create point
+            const point = new Point({
+              longitude: tree.Longitude,
+              latitude: tree.Latitude
+            });
+            
+            // Create graphic with Green Robin Farms styling
+            const graphic = new Graphic({
+              geometry: point,
+              symbol: {
+                type: "simple-marker",
+                color: color,
+                size: isMobile ? 15 : 12, // Larger touch targets on mobile
+                outline: {
+                  color: [255, 255, 255],
+                  width: 2
+                }
+              },
+              attributes: {
+                Type: tree.Type,
+                Longitude: tree.Longitude,
+                Latitude: tree.Latitude
+              },
+              popupTemplate: {
+                title: "{Type}",
+                content: "Longitude: {Longitude}<br>Latitude: {Latitude}"
+              }
+            });
+            
+            // Add to layer
+            layer.add(graphic);
+          });
+          
+          debugLog(`Added ${data.length} trees to map`);
+          
+          if (initialLoad) {
+            // Create legend
+            createLegend(treeTypesWithColors);
+          }
+        }
+        
+        // Function to create legend
+        function createLegend(treeTypesWithColors) {
+          debugLog("Creating legend");
+          
+          const legendContent = document.getElementById("legendContent");
+          legendContent.innerHTML = '';
+          
+          // Get tree counts by type
+          const treeCountsByType = {};
+          treeData.forEach(tree => {
+            treeCountsByType[tree.Type] = (treeCountsByType[tree.Type] || 0) + 1;
+          });
+          
+          // Sort tree types alphabetically for the legend
+          const sortedTypes = Object.keys(treeTypesWithColors).sort();
+          
+          // Add each tree type to legend
+          sortedTypes.forEach(treeType => {
+            const color = treeTypesWithColors[treeType];
+            const treeCount = treeCountsByType[treeType] || 0;
+            
+            // Create legend item
+            const legendItem = document.createElement("div");
+            legendItem.className = "legend-item";
+            legendItem.title = `Click to filter to ${treeType} trees`;
+            
+            // Create color box
+            const colorBox = document.createElement("div");
+            colorBox.className = "legend-color";
+            colorBox.style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+            
+            // Create label
+            const label = document.createElement("div");
+            label.className = "legend-label";
+            label.textContent = treeType;
+            
+            // Create count badge
+            const countBadge = document.createElement("div");
+            countBadge.className = "legend-count";
+            countBadge.textContent = treeCount;
+            
+            // Add to legend item
+            legendItem.appendChild(colorBox);
+            legendItem.appendChild(label);
+            legendItem.appendChild(countBadge);
+            
+            // Add to legend
+            legendContent.appendChild(legendItem);
+          });
+          
+          debugLog("Legend created");
+        }
+        
+        // Function to load farm boundary
+        function loadFarmBoundary(layer, fallbackExtent) {
+          debugLog("Loading farm boundary from GeoJSON");
+          
+          fetch("data/GreenRobinFarms.geojson")
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              debugLog("Farm GeoJSON fetch response received");
+              return response.json();
+            })
+            .then(geojson => {
+              debugLog("Farm GeoJSON data loaded");
+              
+              if (geojson.features && geojson.features.length > 0) {
+                // Create graphics from GeoJSON features
+                geojson.features.forEach(feature => {
+                  // Determine geometry type
+                  let rings;
+                  
+                  if (feature.geometry.type === "Polygon") {
+                    debugLog("GeoJSON contains Polygon geometry");
+                    rings = feature.geometry.coordinates;
+                  } else if (feature.geometry.type === "MultiPolygon") {
+                    debugLog("GeoJSON contains MultiPolygon geometry");
+                    rings = feature.geometry.coordinates[0];
+                  } else {
+                    debugLog(`Unsupported geometry type: ${feature.geometry.type}`);
+                    return;
+                  }
+                  
+                  // Create graphic with Green Robin Farms styling
+                  const graphic = new Graphic({
+                    geometry: {
+                      type: "polygon",
+                      rings: rings
+                    },
+                    symbol: {
+                      type: "simple-fill",
+                      color: [10, 90, 49, 0.2], // Dark green with transparency (Green Robin Farms color)
+                      outline: {
+                        color: [10, 90, 49, 0.8], // Dark green (Green Robin Farms color)
+                        width: 2
+                      }
+                    },
+                    popupTemplate: {
+                      title: "Green Robin Farms",
+                      content: "Farm boundary perimeter"
+                    }
+                  });
+                  
+                  // Add to layer
+                  layer.add(graphic);
+                });
+                
+                debugLog("Farm boundary added to map");
+              } else {
+                debugLog("No features found in GeoJSON");
+                createFallbackBoundary(layer, fallbackExtent);
+              }
+            })
+            .catch(error => {
+              debugLog(`Error loading GeoJSON: ${error.message}`);
+              createFallbackBoundary(layer, fallbackExtent);
+            });
+        }
+        
+        // Function to create fallback boundary
+        function createFallbackBoundary(layer, extent) {
+          debugLog("Creating fallback farm boundary");
+          
+          // Create a polygon using the extent with extra padding
+          const padding = 0.0005; // Additional padding
+          
+          const polygon = {
+            type: "polygon",
+            rings: [
+              [
+                [extent.xmin - padding, extent.ymin - padding],
+                [extent.xmax + padding, extent.ymin - padding],
+                [extent.xmax + padding, extent.ymax + padding],
+                [extent.xmin - padding, extent.ymax + padding],
+                [extent.xmin - padding, extent.ymin - padding]
+              ]
+            ]
+          };
+          
+          // Create graphic with Green Robin Farms styling
+          const graphic = new Graphic({
+            geometry: polygon,
+            symbol: {
+              type: "simple-fill",
+              color: [10, 90, 49, 0.2], // Dark green with transparency (Green Robin Farms color)
+              outline: {
+                color: [10, 90, 49, 0.8], // Dark green (Green Robin Farms color)
+                width: 2
+              }
+            },
+            popupTemplate: {
+              title: "Green Robin Farms",
+              content: "Farm boundary perimeter (approximated)"
+            }
+          });
+          
+          // Add to layer
+          layer.add(graphic);
+          
+          debugLog("Fallback farm boundary added to map");
+        }
+      }
+    });0;
         } else {
           return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
         }
@@ -953,10 +1990,52 @@
   </div>
   
   <div id="infoDiv">
-    <h3>Tree Locations</h3>
-    <div id="legendDiv">
-      <p>Tree Types:</p>
-      <div id="legendContent"></div>
+    <h3>Tree Map Explorer</h3>
+    
+    <!-- Search box -->
+    <input type="text" id="searchBox" placeholder="Search trees..." aria-label="Search trees">
+    <button id="clearSearchBtn" aria-label="Clear search">✕</button>
+    <p id="searchResults" style="font-size: 12px; color: #666;"></p>
+    
+    <!-- Tree type filter -->
+    <div id="searchFilterDiv">
+      <label for="treeTypeFilter">Filter by Tree Type:</label>
+      <select id="treeTypeFilter">
+        <option value="All">All Tree Types</option>
+        <!-- Tree types will be dynamically added here -->
+      </select>
+      <button id="zoomToTreeTypeBtn"><i>🔍</i> Zoom to Selected Trees</button>
+      <label style="display: flex; align-items: center; margin-top: 5px; font-weight: normal;">
+        <input type="checkbox" id="autoZoomCheck" checked>
+        <span style="margin-left: 5px;">Auto-zoom on filter change</span>
+      </label>
+    </div>
+    
+    <!-- Tree Statistics -->
+    <div id="statsDiv">
+      <h3>Tree Statistics</h3>
+      
+      <div class="stat-card">
+        <div class="stat-title">Total Trees</div>
+        <div class="stat-value" id="totalTreeCount">0</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-title">Dominant Tree Type</div>
+        <div class="stat-value" id="dominantTreeType">-</div>
+        <div class="stat-subtitle">
+          <span id="dominantTreeCount">0</span> trees 
+          <span id="dominantTreePercentage">(0%)</span>
+        </div>
+      </div>
+      
+      <div class="stat-card" id="filteredStats" style="display: none;">
+        <div class="stat-title">Filtered Trees</div>
+        <div class="stat-value" id="filteredTreeCount">0</div>
+        <div class="stat-subtitle">
+          <span id="filteredTreePercentage">(0%)</span> of total
+        </div>
+      </div>
     </div>
     
     <!-- Sort controls -->
@@ -964,10 +2043,17 @@
       <label for="sortSelect">Sort Trees By:</label>
       <select id="sortSelect">
         <option value="Type">Tree Type</option>
-        <option value="Latitude">Latitude</option>
-        <option value="Longitude">Longitude</option>
+        <option value="Latitude">Latitude (North to South)</option>
+        <option value="Longitude">Longitude (East to West)</option>
       </select>
       <button id="sortOrderBtn">Sort Order <span id="sortOrderIcon">↑</span></button>
+    </div>
+    
+    <!-- Legend -->
+    <h3>Tree Types</h3>
+    <div id="legendDiv">
+      <p>Click a tree type to filter:</p>
+      <div id="legendContent"></div>
     </div>
   </div>
   
