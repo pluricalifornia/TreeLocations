@@ -505,55 +505,30 @@
           nextBasemap: "satellite"
         });
         
+        // Add widgets to the UI
+        view.ui.add(homeWidget, "top-left");
+        
         // Detect if on mobile
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
-        
         if (isMobile) {
-          // Position zoom controls in middle-left for mobile
-          view.ui.move("zoom", "manual");
-          view.ui.add(view.zoom, {
-            position: "manual",
-            index: 0
-          });
-          view.ui.move(view.zoom, {
-            position: {
-              y: Math.floor(window.innerHeight / 2),
-              x: 15
-            }
-          });
-          
-          // Position home button above zoom controls
-          view.ui.add(homeWidget, {
-            position: "manual",
-            index: 0
-          });
-          view.ui.move(homeWidget, {
-            position: {
-              y: Math.floor(window.innerHeight / 2) - 50,
-              x: 15
-            }
-          });
-          
           // Position basemap toggle in top-right for mobile
           view.ui.add(basemapToggle, "top-right");
           
           // Adjust map UI for better touch interaction
           view.ui.padding = {
-            top: 120, // Space for header and logo
+            top: 120, // Extra space for header
             bottom: document.documentElement.style.getPropertyValue('--safe-area-inset-bottom') ? 
                     parseInt(document.documentElement.style.getPropertyValue('--safe-area-inset-bottom')) + 15 : 15,
-            right: 15
+            right: 15 // Ensure padding for the basemap toggle
           };
         } else {
-          // Desktop positioning
-          // Add Home widget to top-left
-          view.ui.add(homeWidget, "top-left");
-          
-          // Add BasemapToggle widget to bottom-right
+          // Position basemap toggle in bottom-right for desktop
           view.ui.add(basemapToggle, "bottom-right");
           
+          // Add more padding for desktop to account for the header and logo
           view.ui.padding = {
-            right: 300 // Space for title, logo and legend
+            left: 220, // Ensure space for zoom controls without overlap
+            top: 180  // Space for title and logo
           };
         }
         
